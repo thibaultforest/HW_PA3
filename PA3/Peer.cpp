@@ -27,19 +27,12 @@ using namespace std;
 
 Peer::Peer(string pathConfig) {
     setPeerWithConfigFile(pathConfig);
-    readDirectory(_path, _files);
+    readDirectory(_pathMyFiles, _files);
+    readDirectory(_pathDownloads, _files);
 }
 
 Peer::~Peer() {
     //destructor
-}
-
-Peer::Peer(string ip, string port, string path, vector<Peer> neighbours, vector<string> files) {
-    _ip = ip;
-    _port = port;
-    _files = files;
-    _neighbours = neighbours;
-    _path = path;
 }
 
 Peer::Peer(string ip, string port) {
@@ -56,9 +49,8 @@ string Peer::increIdQuery(string idQuery){
 }
 
 void Peer::showYourFiles() {
-    for (int i = 0; i < _files.size(); i++) {
-        cout << _files[i] << endl;
-    }
+    for (int i = 0; i < _files.size(); i++)
+        _files[i].displayFileInfo();
 }
 
 void Peer::setPeerWithConfigFile(const std::string path){
@@ -77,10 +69,11 @@ void Peer::setPeerWithConfigFile(const std::string path){
                 contenu = str.substr(0, str.size()-1);
                 istringstream iss(contenu);
                 copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(vect));
-                if(vect.size() == 3){
+                if(vect.size() == 4){
                     setIp(vect.at(0));
                     setPort(vect.at(1).c_str());
-                    setPath(vect.at(2));
+                    setPathMyfiles(vect.at(2));
+                    setPathDownloads(vect.at(3));
                 }
             }
             else if (contenu == "NEIGHBOURS\r"){      //Get neighbours' config
@@ -115,17 +108,31 @@ void Peer::displayNeighbours(){
         cout << "Neighbour " << i << " ip : " << _neighbours.at(i)._ip << ", port : " << _neighbours.at(i)._port << endl;
 }
 
-int Peer::getFilesSize() { return (int)_files.size(); }
-int Peer::getNeighboursSize() { return (int)_neighbours.size(); }
-string Peer::getFile(int index) { return _files[index]; }
-string Peer::getPath(){return _path;}
+int Peer::getFilesNumber() { return (int)_files.size(); }
+//int Peer::getDownloadedFilesNumber() { return (int)_downloadedFiles.size(); }
+string Peer::getFileName(int index) { return _files[index].getName(); }
+
 void Peer::setIp(std::string ip){_ip = ip;}
+std::string Peer::getIp(){return _ip;}
+
 void Peer::setPort(std::string port){_port = port;}
-void Peer::setPath(std::string path){_path = path;}
+std::string Peer::getPort() {return _port;}
+
+void Peer::setPathMyfiles(std::string path){_pathMyFiles = path;}
+string Peer::getPathFiles(string name){
+    for (int i=0; i<(int)_files.size(); i++) {
+        if(name == _files[i].getName())
+            return _files[i].getPath();
+    }
+    return "";
+}
+void Peer::setPathDownloads(std::string path){_pathDownloads = path;}
+//string Peer::getPathDownloads(){return _pathDownloads;}
+
 Peer Peer::getNeighBour(int index){return _neighbours.at(index);}
 int Peer::getNumberOfNeighbours(){return (int)_neighbours.size();}
-std::string Peer::getIp(){return _ip;}
-std::string Peer::getPort() {return _port;}
+
+
 
 std::string Peer::newQuery(){
     string newIdQuery;
@@ -198,10 +205,10 @@ bool Peer::isQueryDone(std::string idQuery) {
     return false;
 }
 
-void Peer::addConnectedPeer(std::string ip, std::string port){
-    Peer newPeer(ip, port);
-    _connectedPeer.push_back(newPeer);
-}
+//void Peer::addConnectedPeer(std::string ip, std::string port){
+//    Peer newPeer(ip, port);
+//    _connectedPeer.push_back(newPeer);
+//}
 
 bool Peer::isMyId(string id){
     vector<string> idMessage;
@@ -218,7 +225,7 @@ bool Peer::isMyId(string id){
 /************** END OF CLASS IMPLEMENTATION ************************/
 
 
-void readDirectory(string directory, vector<std::string> &files) {
+void readDirectory(string directory, vector<File> &files) {
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir(directory.c_str())) != NULL) {
@@ -229,7 +236,8 @@ void readDirectory(string directory, vector<std::string> &files) {
                     if ((strcmp(ent->d_name, "."))) {
                         if ((strcmp(ent->d_name, ".."))) {
                             string nameOfFile = string(ent->d_name);
-                            files.push_back(nameOfFile);
+                            File file(nameOfFile, "0", directory);
+                            files.push_back(file);
                         }
                     }
                 }

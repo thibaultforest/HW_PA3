@@ -61,10 +61,11 @@ string queryHistory[SIZEHISTORY]={""};
 
 int main(int argc, const char * argv[])
 {
-    Peer firstPeer("/Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");//"/Users/forest/Documents/gouldins/PA2/CONFIG.txt");
+    Peer firstPeer("/Users/forest/Documents/HW_PA3/PA3/CONFIG.txt");///Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");
     myPeer = &firstPeer;
 //    myPeer->increIdQuery();
     firstPeer.displayNeighbours();
+    firstPeer.showYourFiles();
     
     pthread_t threadClient;
     pthread_t threadServer;
@@ -118,7 +119,6 @@ void* server(void* data)
                     /* Waiting for a client.. */
                     csock = accept(sock, (SOCKADDR*)&csin, &crecsize);
                     printf("A peer is connected with socket %d from %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-//                    myPeer->addConnectedPeer(inet_ntoa(csin.sin_addr), to_string(htons(csin.sin_port)));
                     pthread_t t;
                     fflush(stdout);
                     pthread_create(&t, NULL, handleQueryClient, &csock);
@@ -157,8 +157,8 @@ void* handleQueryClient(void *data){
     if(updateQueryHistory(query)){
     
         if (query.type == "download") {    // Launch sendFile if fileName found.
-            for (int i = 0; i < myPeer->getFilesSize(); i++) {
-                string nameOfFile = myPeer->getFile(i);
+            for (int i = 0; i < myPeer->getFilesNumber(); i++) {
+                string nameOfFile = myPeer->getFileName(i);
                 if (nameOfFile == query.fileName) {
                     pthread_t t;
                     pthread_create(&t, NULL, sendFile, &query);
@@ -184,7 +184,7 @@ void* handleQueryClient(void *data){
 
 void* sendFile(void* data){
     Query myQuery = *(Query*) data;
-    string strPath = myPeer->getPath();
+    string strPath = myPeer->getPathFiles(myQuery.fileName);
     SOCKET sock = atoi(myQuery.sock.c_str());
     char fs_name[100] = "";
     strcpy(fs_name, strPath.c_str());
@@ -224,7 +224,7 @@ void* sendFile(void* data){
 void* recvFile(void* data){
     printf("[Client] Receiveing file from the peer and saving it ...\n");
     Query myQuery = *(Query*) data;
-    string strPath = myPeer->getPath();
+    string strPath = myPeer->getPathFiles(myQuery.fileName);
     SOCKET sock = atoi(myQuery.sock.c_str());
     char fr_name[100] = "";
     strcpy(fr_name, strPath.c_str());
@@ -317,8 +317,8 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
         }
     }
     if(!myPeer->isMyId(myQuery.idMessage)){         // If searchQuery is not mine, I add my adress if have the file.
-        for (int i = 0; i < myPeer->getFilesSize(); i++) {
-            string nameOfFile = myPeer->getFile(i);
+        for (int i = 0; i < myPeer->getFilesNumber(); i++) {
+            string nameOfFile = myPeer->getFileName(i);
             if (nameOfFile == myQuery.fileName) {
                 string info = myPeer->getIp()+" "+myPeer->getPort()+" "+myQuery.fileName;
                 myPeer->addResultToHistory(myQuery.idMessage, info);

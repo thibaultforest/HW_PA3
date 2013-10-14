@@ -17,13 +17,15 @@
 #include <fstream>
 #include <dirent.h>
 #include "QueryHistory.h"
+#include "File.h"
 
 class Peer {
 private:
     std::string _ip;
     std::string _port;
-    std::string _path;
-    std::vector<std::string> _files;
+    std::string _pathMyFiles;
+    std::string _pathDownloads;
+    std::vector<File> _files;
     std::vector<Peer> _neighbours;
     std::vector<Peer> _connectedPeer;
     std::vector<QueryHistory> _history;
@@ -32,16 +34,28 @@ public:
     Peer(std::string pathConfig);
     ~Peer();
     Peer(std::string ip, std::string port);
-    Peer(std::string ip, std::string port, std::string path, std::vector<Peer> neighbours, std::vector<std::string> files);
+
+    void setPeerWithConfigFile(const std::string path);
     
-    int getFilesSize();
-    int getNeighboursSize();
-    std::string getFile(int index);
-    std::string getPath();
+    void setPathMyfiles(std::string path);
+    void setPathDownloads(std::string path);
+    void showYourFiles();
+    void displayNeighbours();
+    
+//    int getMyFilesNumber();
+//    int getDownloadedFilesNumber();
+    int getFilesNumber();
+    std::string getFileName(int index);
+    std::string getPathFiles(std::string name);
+    
     Peer getNeighBour(int index);
     int getNumberOfNeighbours();
+    
+    void setIp(std::string ip);
     std::string getIp();
+    void setPort(std::string port);
     std::string getPort();
+    
     std::string getIdQuery();
     std::string newQuery();
     void addQuery(std::string idQuery);
@@ -52,19 +66,11 @@ public:
     void setQueryIsReceived(std::string idQuery);
     bool isQueryDone(std::string idQuery);
     
-    void setPeerWithConfigFile(const std::string path);
-    void setIp(std::string ip);
-    void setPort(std::string port);
-    void setPath(std::string path);
-    
-    void displayNeighbours();
-    void addConnectedPeer(std::string ip, std::string port);
-    void showYourFiles();
     std::string increIdQuery(std::string idQuery);
     
     bool isMyId(std::string id);
 };
 
-void readDirectory(std::string directory, std::vector<std::string> &files);
+void readDirectory(std::string directory, std::vector<File> &files);
 
 #endif /* defined(__Gnutella__Peer__) */

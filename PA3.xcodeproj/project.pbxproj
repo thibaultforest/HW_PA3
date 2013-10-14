@@ -11,6 +11,7 @@
 		8589D6EB180C994900DD4F34 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8589D6EA180C994900DD4F34 /* main.cpp */; };
 		8589D6F0180C995600DD4F34 /* Peer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8589D6EC180C995600DD4F34 /* Peer.cpp */; };
 		8589D6F1180C995600DD4F34 /* QueryHistory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8589D6EE180C995600DD4F34 /* QueryHistory.cpp */; };
+		8589D6F5180C9BEF00DD4F34 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8589D6F3180C9BEF00DD4F34 /* File.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -35,6 +36,8 @@
 		8589D6EE180C995600DD4F34 /* QueryHistory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = QueryHistory.cpp; sourceTree = "<group>"; };
 		8589D6EF180C995600DD4F34 /* QueryHistory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QueryHistory.h; sourceTree = "<group>"; };
 		8589D6F2180C996100DD4F34 /* CONFIG.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CONFIG.txt; sourceTree = "<group>"; };
+		8589D6F3180C9BEF00DD4F34 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = File.cpp; sourceTree = "<group>"; };
+		8589D6F4180C9BEF00DD4F34 /* File.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = File.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +71,8 @@
 			isa = PBXGroup;
 			children = (
 				8589D6F2180C996100DD4F34 /* CONFIG.txt */,
+				8589D6F3180C9BEF00DD4F34 /* File.cpp */,
+				8589D6F4180C9BEF00DD4F34 /* File.h */,
 				8589D6EC180C995600DD4F34 /* Peer.cpp */,
 				8589D6ED180C995600DD4F34 /* Peer.h */,
 				8589D6EE180C995600DD4F34 /* QueryHistory.cpp */,
@@ -130,6 +135,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8589D6EB180C994900DD4F34 /* main.cpp in Sources */,
+				8589D6F5180C9BEF00DD4F34 /* File.cpp in Sources */,
 				8589D6F0180C995600DD4F34 /* Peer.cpp in Sources */,
 				8589D6F1180C995600DD4F34 /* QueryHistory.cpp in Sources */,
 			);
@@ -239,6 +245,7 @@
 				8589D6E9180C98EB00DD4F34 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

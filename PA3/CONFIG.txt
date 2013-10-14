@@ -1,5 +1,5 @@
 PEERCONFIG
-10.0.0.5 50001 /Users/forest
+10.0.0.5 50001 /Users/forest/Documents/HW_PA3/myFiles/ /Users/forest/Documents/HW_PA3/downloads/
 NEIGHBOURS
 10.0.0.13 50002
 10.0.0.2 50003
