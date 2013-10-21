@@ -40,7 +40,10 @@ public:
     void setPathMyfiles(std::string path);
     void setPathDownloads(std::string path);
     void showYourFiles();
+    void readDirectory(std::string directory);
     void displayNeighbours();
+    
+    void modifyFile(std::string fileName);
     
 //    int getMyFilesNumber();
 //    int getDownloadedFilesNumber();
@@ -71,6 +74,5 @@ public:
     bool isMyId(std::string id);
 };
 
-void readDirectory(std::string directory, std::vector<File> &files);
 
 #endif /* defined(__Gnutella__Peer__) */

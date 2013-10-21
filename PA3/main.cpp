@@ -8,6 +8,7 @@
 
 #include "Peer.h"
 #include <pthread.h>
+#include <mutex>
 /*      SOCKET INCLUDE      */
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -32,20 +33,12 @@ using namespace std;
 
 typedef struct
 {
-    string file;
-    int sock;
-}InfoFile;
-
-typedef struct
-{
     string idMessage;
     string type;
     string fileName;
     string TTL;
     string sock;
 }Query;
-
-Peer *myPeer;
 
 bool getCmd(Query &query, const std::string myCout);
 void* server(void* data);
@@ -56,14 +49,16 @@ void* searchQuery(void* data);
 void* client(void* data);
 void* downloadQuery(void* data);
 bool updateQueryHistory(Query query);
+void* modifyFile(void* data);
 
 string queryHistory[SIZEHISTORY]={""};
+mutex myMutex;
+Peer *myPeer;
 
 int main(int argc, const char * argv[])
 {
     Peer firstPeer("/Users/forest/Documents/HW_PA3/PA3/CONFIG.txt");///Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");
     myPeer = &firstPeer;
-//    myPeer->increIdQuery();
     firstPeer.displayNeighbours();
     firstPeer.showYourFiles();
     
@@ -93,6 +88,7 @@ void* server(void* data)
     /* Si la socket est valide */
     if(sock != INVALID_SOCKET)
     {
+        myMutex.lock();
         printf("La socket %d est maintenant ouverte en mode TCP/IP\n", sock);
         string strPort = myPeer->getPort();
         int port = atoi(strPort.c_str());
@@ -108,6 +104,7 @@ void* server(void* data)
             /* Listen (mode server) */
             sock_err = listen(sock, 5);
             printf("Port %d is listening...\n", port);
+            myMutex.unlock();
             while(1){
                 /* Client socket */
                 SOCKADDR_IN csin;
@@ -118,7 +115,9 @@ void* server(void* data)
                 {
                     /* Waiting for a client.. */
                     csock = accept(sock, (SOCKADDR*)&csin, &crecsize);
+                    myMutex.lock();
                     printf("A peer is connected with socket %d from %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
+                    myMutex.unlock();
                     pthread_t t;
                     fflush(stdout);
                     pthread_create(&t, NULL, handleQueryClient, &csock);
@@ -191,6 +190,7 @@ void* sendFile(void* data){
     strcat(fs_name, myQuery.fileName.c_str());
     
     char sdbuf[1024];
+    myMutex.lock();
     printf("[Client] Sending %s to the peer...\n", fs_name);
     FILE *fs = fopen(fs_name, "r");
     if(fs == NULL)
@@ -217,11 +217,12 @@ void* sendFile(void* data){
     if(send(sock, "END", sizeof("END"), 0) < 0)
         printf("ERROR\n");
     printf("Ok File %s is sent !\n", fs_name);
-    
+    myMutex.unlock();
     return NULL;
 }
 
 void* recvFile(void* data){
+    myMutex.lock();
     printf("[Client] Receiveing file from the peer and saving it ...\n");
     Query myQuery = *(Query*) data;
     string strPath = myPeer->getPathFiles(myQuery.fileName);
@@ -270,6 +271,7 @@ void* recvFile(void* data){
             }
         }
         printf("Ok received from the peer!\n");
+        myMutex.unlock();
         myPeer->setQueryIsReceived(myQuery.idMessage);
         fclose(fr);
     }
@@ -366,7 +368,12 @@ void* client(void* data)
             pthread_create(&t, NULL, downloadQuery, &myQuery);
             pthread_join(t, NULL);
         }
-
+        else if (myQuery.type == "modify"){
+            myPeer->modifyFile(myQuery.fileName);
+        }
+        else if (myQuery.type == "lookup"){
+            myPeer->showYourFiles();
+        }
     }
     return NULL;
 }
@@ -422,21 +429,28 @@ void* downloadQuery(void* data){
     return NULL;
 }
 
+
 bool getCmd(Query &query, const std::string myCout) {
+    myMutex.lock();
     cout << myCout;
     vector<string> vect;
     string sentence;
     getline(cin, sentence);
     istringstream iss(sentence);
     copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(vect));
-    if(vect.at(0) == "exit" || (vect.size() == 0))
+    if(vect.at(0) == "exit" || (vect.size() == 0)){
+        myMutex.unlock();
         return false;
+    }
     else if(vect.size() == 2){
         query.type = vect.at(0);
         query.fileName = vect.at(1);
         query.TTL = "2";
         query.idMessage = myPeer->newQuery();
     }
+    else if (vect.size() == 1)
+        query.type = vect[0];
+    myMutex.unlock();
     return true;
 }
 

@@ -20,15 +20,14 @@
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
-#define PORT 50000
 
 using namespace std;
 
 
 Peer::Peer(string pathConfig) {
     setPeerWithConfigFile(pathConfig);
-    readDirectory(_pathMyFiles, _files);
-    readDirectory(_pathDownloads, _files);
+    readDirectory(_pathMyFiles);
+    readDirectory(_pathDownloads);
 }
 
 Peer::~Peer() {
@@ -49,6 +48,7 @@ string Peer::increIdQuery(string idQuery){
 }
 
 void Peer::showYourFiles() {
+    cout << "NAME\t\t\t\tVERSION\t\t\t\t\t\tDIRECTORY\n";
     for (int i = 0; i < _files.size(); i++)
         _files[i].displayFileInfo();
 }
@@ -103,9 +103,24 @@ void Peer::setPeerWithConfigFile(const std::string path){
     else
         cerr << "Error opening config file." << endl;
 }
+
 void Peer::displayNeighbours(){
     for(int i=0; i<_neighbours.size(); i++)
         cout << "Neighbour " << i << " ip : " << _neighbours.at(i)._ip << ", port : " << _neighbours.at(i)._port << endl;
+}
+
+void Peer::modifyFile(string fileName){
+    bool myBool = false;
+    for(int i=0; i<_files.size(); i++){
+        if(_files[i].getName() == fileName){
+            _files[i].modif(_ip+" "+_port);
+            myBool = true;
+            _files[i].displayFileInfo();
+            break;
+        }
+    }
+    if(!myBool)
+        cout << "File not found.\n";
 }
 
 int Peer::getFilesNumber() { return (int)_files.size(); }
@@ -221,11 +236,7 @@ bool Peer::isMyId(string id){
     return false;
 }
 
-
-/************** END OF CLASS IMPLEMENTATION ************************/
-
-
-void readDirectory(string directory, vector<File> &files) {
+void Peer::readDirectory(string directory) {
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir(directory.c_str())) != NULL) {
@@ -236,8 +247,8 @@ void readDirectory(string directory, vector<File> &files) {
                     if ((strcmp(ent->d_name, "."))) {
                         if ((strcmp(ent->d_name, ".."))) {
                             string nameOfFile = string(ent->d_name);
-                            File file(nameOfFile, "0", directory);
-                            files.push_back(file);
+                            File file(nameOfFile, _ip+" "+_port+" "+"0", directory);
+                            _files.push_back(file);
                         }
                     }
                 }

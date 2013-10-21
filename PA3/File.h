@@ -12,11 +12,13 @@
 #include <iostream>
 #include <string>
 
+
 class File {
 private:
     std::string _name;
     std::string _version;
     std::string _path;
+    bool isModified;
     
 public:
     File(std::string name, std::string version, std::string path);
@@ -27,6 +29,8 @@ public:
     std::string getVersion();
     std::string getPath();
     void displayFileInfo();
+    
+    void modif(std::string prefixVersion);
 };
 
 #endif /* defined(__PA3__File__) */
