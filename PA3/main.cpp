@@ -52,10 +52,13 @@ bool updateQueryHistory(Query query);
 void* modifyFile(void* data);
 void* invalidate(void* data);
 void* broadcastModif(void* data);
+void updateFile(Query myQuery);
 
 string queryHistory[SIZEHISTORY]={""};
 mutex myMutex;
+mutex pullPush;
 Peer *myPeer;
+bool pullBased = false;
 
 int main(int argc, const char * argv[])
 {
@@ -319,10 +322,51 @@ void* invalidate(void* data){
     
     File thisFile(myQuery.fileName, myQuery.version, "", "");
     if(myPeer->haveWrongFileVersion(thisFile)){
-        
+#warning Faire une query download vers la peer source du fichier!
+        updateFile(myQuery);
     }
     
     return NULL;
+}
+
+void updateFile(Query myQuery){
+    
+    std::vector<std::string> splitString;
+    std::istringstream iss(myQuery.version);
+    copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
+    SOCKET sock;
+    SOCKADDR_IN sin;
+    /* Création de la socket */
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    
+    /* Configuration de la connexion */
+    sin.sin_addr.s_addr = inet_addr((splitString.at(0)).c_str());
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(atoi(splitString.at(1).c_str()));
+    
+    /* Si le client arrive à se connecter */
+    if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+        printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+        if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
+            printf("Send failed.\n");
+        else{
+            string buffer;
+            while (buffer != "YES") {
+                recv(sock, &buffer, sizeof(buffer), 0);
+                if(buffer == "YES"){
+                    pthread_t t;
+                    myQuery.sock = to_string(sock);
+                    pthread_create(&t, NULL, recvFile, &myQuery);
+                    pthread_join(t, NULL);
+                    break;
+                }
+            }
+        }
+    }
+    else
+        printf("Connection failed.\n");
+    
+    closesocket(sock);
 }
 
 void* searchQuery(void* data){       //Decrement TTL and Forward Query
@@ -417,17 +461,35 @@ void* client(void* data)
         }
         else if (myQuery.type == "modify"){
             myQuery.version = myPeer->modifyFile(myQuery.fileName);
-            pthread_t t;
-            pthread_create(&t, NULL, broadcastModif, &myQuery);
-            pthread_join(t, NULL);
+            if(!pullBased){
+                pthread_t t;
+                pthread_create(&t, NULL, broadcastModif, &myQuery);
+                pthread_join(t, NULL);
+            }
         }
         else if (myQuery.type == "lookup"){
+            myMutex.lock();
             myPeer->showYourFiles();
+            myMutex.unlock();
+        }
+        else if (myQuery.type == "pull"){
+            pullPush.lock();
+            pullBased = true;
+            cout << "Pull-based ON; Push-based OFF\n";
+            pullPush.unlock();
+        }
+        else if (myQuery.type == "push"){
+            pullPush.lock();
+            pullBased = false;
+            cout << "Push-based ON; Pull-based OFF\n";
+            pullPush.unlock();
         }
     }
     return NULL;
 }
 void* broadcastModif(void* data){
+    pullPush.lock();
+    cout << "Broadcasting invalidate...\n";
     Query myQuery = *(Query*) data;
     myQuery.type = "invalidate";
     int TTL = atoi(myQuery.TTL.c_str());
@@ -457,6 +519,8 @@ void* broadcastModif(void* data){
             closesocket(sock);
         }
     }
+    cout << "Done!\n";
+    pullPush.unlock();
     return NULL;
 }
 void* downloadQuery(void* data){
