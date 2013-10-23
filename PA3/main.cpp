@@ -53,6 +53,7 @@ void* modifyFile(void* data);
 void* invalidate(void* data);
 void* broadcastModif(void* data);
 void updateFile(Query myQuery);
+void* pullThread(void* data);
 
 string queryHistory[SIZEHISTORY]={""};
 mutex myMutex;
@@ -69,12 +70,15 @@ int main(int argc, const char * argv[])
     
     pthread_t threadClient;
     pthread_t threadServer;
+    pthread_t threadPull;
     
     pthread_create(&threadServer, NULL, server, NULL);
     pthread_create(&threadClient, NULL, client, NULL);
+    pthread_create(&threadPull, NULL, pullThread, NULL);
     
     pthread_join(threadClient, NULL);
     pthread_join(threadServer, NULL);
+    pthread_join(threadPull, NULL);
     return 0;
 }
 
@@ -322,8 +326,23 @@ void* invalidate(void* data){
     
     File thisFile(myQuery.fileName, myQuery.version, "", "");
     if(myPeer->haveWrongFileVersion(thisFile)){
-#warning Faire une query download vers la peer source du fichier!
+#warning Query download vers la peer source du fichier!
         updateFile(myQuery);
+    }
+    
+    return NULL;
+}
+
+void* pullThread(void* data){
+    
+    while(1){
+        sleep(10000);
+        while (pullBased) {
+        #warning implement pullBased here
+            // 1. Decrement all TTR's files;
+            // 2. query version file for each file which have TTR=0;
+            // 3. Download (void updateFile(Query myQuery)) file which have a wrong version;
+        }
     }
     
     return NULL;
