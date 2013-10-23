@@ -15,9 +15,10 @@
 
 using namespace std;
 
-File::File(std::string name, std::string version, std::string path) {
+File::File(std::string name, std::string version, std::string origin, std::string path) {
     _name = name;
     _version = version;
+    _origin = origin;
     _path = path;
 }
 File::~File(){}
@@ -44,4 +45,10 @@ void File::modif(string prefixVersion){
         id++;
     }
     _version = prefixVersion+" "+to_string(id);
+}
+
+bool File::sameFileButDifferentVersion(File file){
+    if(file._name == _name && file._version != _version)
+        return true;
+    return false;
 }

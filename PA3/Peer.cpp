@@ -27,7 +27,7 @@ using namespace std;
 Peer::Peer(string pathConfig) {
     setPeerWithConfigFile(pathConfig);
     readDirectory(_pathMyFiles);
-    readDirectory(_pathDownloads);
+    //readDirectory(_pathDownloads);//Should be empty when the program start.
 }
 
 Peer::~Peer() {
@@ -51,6 +51,7 @@ void Peer::showYourFiles() {
     cout << "NAME\t\t\t\tVERSION\t\t\t\t\t\tDIRECTORY\n";
     for (int i = 0; i < _files.size(); i++)
         _files[i].displayFileInfo();
+    cout << endl;
 }
 
 void Peer::setPeerWithConfigFile(const std::string path){
@@ -109,23 +110,23 @@ void Peer::displayNeighbours(){
         cout << "Neighbour " << i << " ip : " << _neighbours.at(i)._ip << ", port : " << _neighbours.at(i)._port << endl;
 }
 
-void Peer::modifyFile(string fileName){
-    bool myBool = false;
+string Peer::modifyFile(string fileName){
+    string newVersion = "";
     for(int i=0; i<_files.size(); i++){
-        if(_files[i].getName() == fileName){
+        if(_files[i].getName() == fileName && _files[i].getPath() == _pathMyFiles){
             _files[i].modif(_ip+" "+_port);
-            myBool = true;
             _files[i].displayFileInfo();
-            break;
+            return _files[i].getVersion();
         }
     }
-    if(!myBool)
-        cout << "File not found.\n";
+    cout << "File not found or not yours.\n";
+    return "";
 }
 
 int Peer::getFilesNumber() { return (int)_files.size(); }
 //int Peer::getDownloadedFilesNumber() { return (int)_downloadedFiles.size(); }
 string Peer::getFileName(int index) { return _files[index].getName(); }
+string Peer::getFileVersion(int index) { return _files[index].getVersion(); }
 
 void Peer::setIp(std::string ip){_ip = ip;}
 std::string Peer::getIp(){return _ip;}
@@ -141,6 +142,18 @@ string Peer::getPathFiles(string name){
     }
     return "";
 }
+
+bool Peer::haveWrongFileVersion(File file){
+    for(int i=0; i<_files.size(); i++){
+//        if (_files[i].getPath() != _pathMyFiles) {
+            if(_files[i].sameFileButDifferentVersion(file))
+                return true;
+//        }
+    }
+    return false;
+}
+
+
 void Peer::setPathDownloads(std::string path){_pathDownloads = path;}
 //string Peer::getPathDownloads(){return _pathDownloads;}
 
@@ -247,7 +260,7 @@ void Peer::readDirectory(string directory) {
                     if ((strcmp(ent->d_name, "."))) {
                         if ((strcmp(ent->d_name, ".."))) {
                             string nameOfFile = string(ent->d_name);
-                            File file(nameOfFile, _ip+" "+_port+" "+"0", directory);
+                            File file(nameOfFile, _ip+" "+_port+" "+"0", _ip+_port, directory);
                             _files.push_back(file);
                         }
                     }

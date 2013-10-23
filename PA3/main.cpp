@@ -21,9 +21,8 @@
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
-#define PORT 50002
-#define QUERYSIZE 256
-#define FILESIZE 1024
+#define QUERYSIZE 256// Never used
+#define FILESIZE 1024// Never used
 /****************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +35,7 @@ typedef struct
     string idMessage;
     string type;
     string fileName;
+    string version;
     string TTL;
     string sock;
 }Query;
@@ -50,6 +50,8 @@ void* client(void* data);
 void* downloadQuery(void* data);
 bool updateQueryHistory(Query query);
 void* modifyFile(void* data);
+void* invalidate(void* data);
+void* broadcastModif(void* data);
 
 string queryHistory[SIZEHISTORY]={""};
 mutex myMutex;
@@ -154,11 +156,11 @@ void* handleQueryClient(void *data){
     myPeer->addQuery(query.idMessage);
     
     if(updateQueryHistory(query)){
-    
+
         if (query.type == "download") {    // Launch sendFile if fileName found.
             for (int i = 0; i < myPeer->getFilesNumber(); i++) {
-                string nameOfFile = myPeer->getFileName(i);
-                if (nameOfFile == query.fileName) {
+#warning Modification à vérifier de près!!!!
+                if (myPeer->getFileName(i) == query.fileName && (myPeer->getFileVersion(i) == query.version || myPeer->getFileVersion(i) == "NA")) {
                     pthread_t t;
                     pthread_create(&t, NULL, sendFile, &query);
                     pthread_join(t, NULL);
@@ -169,6 +171,11 @@ void* handleQueryClient(void *data){
         else if (query.type == "search") {     // Search file requested by a Peer.
             pthread_t t;
             pthread_create(&t, NULL, searchQuery, &query);
+            pthread_join(t, NULL);
+        }
+        else if (query.type == "invalidate"){
+            pthread_t t;
+            pthread_create(&t, NULL, invalidate, &query);
             pthread_join(t, NULL);
         }
         else {
@@ -278,6 +285,46 @@ void* recvFile(void* data){
     return NULL;
 }
 
+void* invalidate(void* data){
+
+    //Forward invalidate msg to neighboors.
+    Query myQuery = *(Query*) data;
+    int TTL = atoi(myQuery.TTL.c_str());
+    if(TTL > 0) {
+        TTL--;
+        myQuery.TTL = to_string(TTL);
+        for (int i = 0; i < myPeer->getNumberOfNeighbours(); i++) {
+            Peer neighbour = myPeer->getNeighBour(i);
+            SOCKET sock;
+            SOCKADDR_IN sin;
+            /* Création de la socket */
+            sock = socket(AF_INET, SOCK_STREAM, 0);
+            /* Configuration de la connexion */
+            sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
+            sin.sin_family = AF_INET;
+            sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
+            
+            /* Si le client arrive à se connecter */
+            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+                printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+                if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
+                    printf("Send failed.\n");
+            }
+            else
+                cout << "Connection to neighboor " << i << " failed.\n";
+            
+            closesocket(sock);
+        }
+    }
+    
+    File thisFile(myQuery.fileName, myQuery.version, "", "");
+    if(myPeer->haveWrongFileVersion(thisFile)){
+        
+    }
+    
+    return NULL;
+}
+
 void* searchQuery(void* data){       //Decrement TTL and Forward Query
     
     Query myQuery = *(Query*) data;
@@ -369,10 +416,45 @@ void* client(void* data)
             pthread_join(t, NULL);
         }
         else if (myQuery.type == "modify"){
-            myPeer->modifyFile(myQuery.fileName);
+            myQuery.version = myPeer->modifyFile(myQuery.fileName);
+            pthread_t t;
+            pthread_create(&t, NULL, broadcastModif, &myQuery);
+            pthread_join(t, NULL);
         }
         else if (myQuery.type == "lookup"){
             myPeer->showYourFiles();
+        }
+    }
+    return NULL;
+}
+void* broadcastModif(void* data){
+    Query myQuery = *(Query*) data;
+    myQuery.type = "invalidate";
+    int TTL = atoi(myQuery.TTL.c_str());
+    if(TTL > 0) {
+        TTL--;
+        myQuery.TTL = to_string(TTL);
+        for (int i = 0; i < myPeer->getNumberOfNeighbours(); i++) {
+            Peer neighbour = myPeer->getNeighBour(i);
+            SOCKET sock;
+            SOCKADDR_IN sin;
+            /* Création de la socket */
+            sock = socket(AF_INET, SOCK_STREAM, 0);
+            /* Configuration de la connexion */
+            sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
+            sin.sin_family = AF_INET;
+            sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
+            
+            /* Si le client arrive à se connecter */
+            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+                printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+                if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
+                    printf("Send failed.\n");
+            }
+            else
+                cout << "Connection to neighboor " << i << " failed.\n";
+            
+            closesocket(sock);
         }
     }
     return NULL;
@@ -447,6 +529,7 @@ bool getCmd(Query &query, const std::string myCout) {
         query.fileName = vect.at(1);
         query.TTL = "2";
         query.idMessage = myPeer->newQuery();
+        query.version = "NA";
     }
     else if (vect.size() == 1)
         query.type = vect[0];

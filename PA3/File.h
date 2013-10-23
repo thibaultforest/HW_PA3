@@ -17,11 +17,12 @@ class File {
 private:
     std::string _name;
     std::string _version;
+    std::string _origin;
     std::string _path;
     bool isModified;
     
 public:
-    File(std::string name, std::string version, std::string path);
+    File(std::string name, std::string version, std::string origin, std::string path);
     ~File();
     
     void setVersion(std::string newVersion);
@@ -29,6 +30,7 @@ public:
     std::string getVersion();
     std::string getPath();
     void displayFileInfo();
+    bool sameFileButDifferentVersion(File file);
     
     void modif(std::string prefixVersion);
 };

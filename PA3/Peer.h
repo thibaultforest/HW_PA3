@@ -43,13 +43,15 @@ public:
     void readDirectory(std::string directory);
     void displayNeighbours();
     
-    void modifyFile(std::string fileName);
+    std::string modifyFile(std::string fileName);
     
 //    int getMyFilesNumber();
 //    int getDownloadedFilesNumber();
     int getFilesNumber();
     std::string getFileName(int index);
+    std::string getFileVersion(int index);
     std::string getPathFiles(std::string name);
+    bool haveWrongFileVersion(File file);
     
     Peer getNeighBour(int index);
     int getNumberOfNeighbours();
