@@ -167,6 +167,15 @@ bool Peer::isQuerySender(std::string idMessage){
     return false;
 }
 
+bool Peer::isFileOwner(std::string version){
+    std::vector<std::string> splitString;
+    std::istringstream iss(version);
+    copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
+    if(_ip == splitString[0] && _port == splitString[1])
+    return true;
+    return false;
+}
+
 void Peer::setPathDownloads(std::string path){_pathDownloads = path;}
 //string Peer::getPathDownloads(){return _pathDownloads;}
 

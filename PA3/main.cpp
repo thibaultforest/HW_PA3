@@ -298,25 +298,27 @@ void* invalidate(void* data){
         myQuery.TTL = to_string(TTL);
         for (int i = 0; i < myPeer->getNumberOfNeighbours(); i++) {
             Peer neighbour = myPeer->getNeighBour(i);
-            SOCKET sock;
-            SOCKADDR_IN sin;
-            /* Création de la socket */
-            sock = socket(AF_INET, SOCK_STREAM, 0);
-            /* Configuration de la connexion */
-            sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
-            sin.sin_family = AF_INET;
-            sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
-            
-            /* Si le client arrive à se connecter */
-            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
-                printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-                if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
+            if (!neighbour.isFileOwner(myQuery.version)) {
+                SOCKET sock;
+                SOCKADDR_IN sin;
+                /* Création de la socket */
+                sock = socket(AF_INET, SOCK_STREAM, 0);
+                /* Configuration de la connexion */
+                sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
+                sin.sin_family = AF_INET;
+                sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
+                
+                /* Si le client arrive à se connecter */
+                if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+                    printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+                    if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
                     printf("Send failed.\n");
-            }
-            else
+                }
+                else
                 cout << "Connection to neighboor " << i << " failed.\n";
-            
-            closesocket(sock);
+                
+                closesocket(sock);
+            }
         }
     }
     
@@ -528,7 +530,7 @@ void* broadcastModif(void* data){
             sin.sin_family = AF_INET;
             sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
             
-                        if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
                 printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
                 if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
                     printf("Send failed.\n");
@@ -595,6 +597,14 @@ void* downloadQuery(void* data){
 }
 
 bool getCmd(Query &query, const std::string myCout) {
+    
+    query.idMessage = "";
+    query.fileName = "";
+    query.sock = "";
+    query.TTL = "";
+    query.type = "";
+    query.version = "";
+    
     cout << myCout;
     vector<string> vect;
     string sentence;

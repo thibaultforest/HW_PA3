@@ -54,6 +54,7 @@ public:
     std::string getPathDownload();
     bool haveWrongFileVersion(File file);
     bool isQuerySender(std::string idMessage);
+    bool isFileOwner(std::string version);
     
     Peer getNeighBour(int index);
     int getNumberOfNeighbours();

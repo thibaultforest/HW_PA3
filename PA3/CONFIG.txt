@@ -1,7 +1,8 @@
 PEERCONFIG
-10.0.0.13 5003 /Users/thomastheissier/Desktop/HW_PA3/pine/ /Users/thomastheissier/Desktop/HW_PA3/pineDownloads/
+127.0.0.1 5004 /Users/thomastheissier/Desktop/HW_PA3/pine/ /Users/thomastheissier/Desktop/HW_PA3/pineDownloads/
 NEIGHBOURS
-10.0.0.13 5005
+127.0.0.1 5006
+
 
 
 
