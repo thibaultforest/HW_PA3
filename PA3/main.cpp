@@ -62,7 +62,7 @@ Peer *myPeer;
 
 int main(int argc, const char * argv[])
 {
-    Peer firstPeer("/Users/thomastheissier/Desktop/gouldins/PA2/CONFIG.txt");///Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");
+    Peer firstPeer("/Users/thomastheissier/Desktop/PA3/PA3/CONFIG.txt");///Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");
     myPeer = &firstPeer;
     firstPeer.displayNeighbours();
     firstPeer.showYourFiles();
@@ -145,6 +145,7 @@ void* server(void* data)
     
     return NULL;
 }
+
 void* handleQueryClient(void *data){
     Query query;
     int stop = 0;
@@ -162,7 +163,7 @@ void* handleQueryClient(void *data){
         if (query.type == "download") {    // Launch sendFile if fileName found.
             for (int i = 0; i < myPeer->getFilesNumber(); i++) {
 #warning Modification à vérifier de près!!!!
-                if (myPeer->getFileName(i) == query.fileName && (myPeer->getFileVersion(i) == query.version || myPeer->getFileVersion(i) == "NA")) {
+                if (myPeer->getFileName(i) == query.fileName && (myPeer->getFileVersion(i) == query.version || query.version == "NA")) {
                     pthread_t t;
                     pthread_create(&t, NULL, sendFile, &query);
                     pthread_join(t, NULL);
@@ -234,7 +235,7 @@ void* recvFile(void* data){
     //myMutex.lock();
     printf("[Client] Receiveing file from the peer and saving it ...\n");
     Query myQuery = *(Query*) data;
-    string strPath = myPeer->getPathFiles(myQuery.fileName);
+    string strPath = myPeer->getPathDownload();
     SOCKET sock = atoi(myQuery.sock.c_str());
     char fr_name[100] = "";
     strcpy(fr_name, strPath.c_str());
@@ -423,6 +424,9 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
             closesocket(sock);
         }
     }
+    SOCKET destSock;
+    destSock = atoi(myQuery.sock.c_str());
+    char buffer[64];
     if(!myPeer->isMyId(myQuery.idMessage)){         // If searchQuery is not mine, I add my adress if have the file.
         for (int i = 0; i < myPeer->getFilesNumber(); i++) {
             string nameOfFile = myPeer->getFileName(i);
@@ -432,9 +436,6 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
                 break;
             }
         }
-        SOCKET destSock;
-        destSock = atoi(myQuery.sock.c_str());
-        char buffer[64];
         vector<string> tablePeer = myPeer->getTablePeerForThisQuery(myQuery.idMessage);
         cout << tablePeer.size() << " Results for query : '" << myQuery.idMessage << "' of type : " << myQuery.type << endl;
         for(int i=0; i<(int)tablePeer.size(); i++){      // Then I reply results of my research.
@@ -444,12 +445,12 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
             else
                 cout << "Result " << i << " : " << buffer << endl;
         }
-        strcpy(buffer, "end");
-        if(send(destSock, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
-            printf("Send failed.\n");
-        closesocket(destSock);//Close socket of the peer who asked for a search
     }
-    else {
+    strcpy(buffer, "end");
+    if(send(destSock, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
+    printf("Send failed.\n");
+    closesocket(destSock);//Close socket of the peer who asked for a search
+    if(myPeer->isMyId(myQuery.idMessage)) {
         vector<string> tablePeer = myPeer->getTablePeerForThisQuery(myQuery.idMessage);
         cout << tablePeer.size() << " Results for query : '" << myQuery.idMessage << "' of type : " << myQuery.type << endl;
         for(int i=0; i<(int)tablePeer.size(); i++)
@@ -604,6 +605,7 @@ bool getCmd(Query &query, const std::string myCout) {
     else if(vect.size() == 2){
         query.type = vect.at(0);
         query.fileName = vect.at(1);
+        query.version = "NA";
         query.TTL = "2";
         query.idMessage = myPeer->newQuery();
     }
@@ -612,8 +614,8 @@ bool getCmd(Query &query, const std::string myCout) {
 
 bool updateQueryHistory(Query query){
     for(int i=0; i<SIZEHISTORY; i++)
-        if(queryHistory[i] == query.idMessage)
-            return false;
+//        if(queryHistory[i] == query.idMessage)
+//            return false;
     
     for(int i=SIZEHISTORY-1; i>0; i--)
         queryHistory[i] = queryHistory[i-1];

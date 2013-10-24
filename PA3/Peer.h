@@ -51,6 +51,7 @@ public:
     std::string getFileName(int index);
     std::string getFileVersion(int index);
     std::string getPathFiles(std::string name);
+    std::string getPathDownload();
     bool haveWrongFileVersion(File file);
     
     Peer getNeighBour(int index);

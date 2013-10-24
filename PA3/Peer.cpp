@@ -135,12 +135,17 @@ void Peer::setPort(std::string port){_port = port;}
 std::string Peer::getPort() {return _port;}
 
 void Peer::setPathMyfiles(std::string path){_pathMyFiles = path;}
+
 string Peer::getPathFiles(string name){
     for (int i=0; i<(int)_files.size(); i++) {
         if(name == _files[i].getName())
             return _files[i].getPath();
     }
     return "";
+}
+
+string Peer::getPathDownload() {
+    return _pathDownloads;
 }
 
 bool Peer::haveWrongFileVersion(File file){
