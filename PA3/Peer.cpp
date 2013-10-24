@@ -158,6 +158,14 @@ bool Peer::haveWrongFileVersion(File file){
     return false;
 }
 
+bool Peer::isQuerySender(std::string idMessage){
+    std::vector<std::string> splitString;
+    std::istringstream iss(idMessage);
+    copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
+    if(_ip == splitString[0] && _port == splitString[1])
+        return true;
+    return false;
+}
 
 void Peer::setPathDownloads(std::string path){_pathDownloads = path;}
 //string Peer::getPathDownloads(){return _pathDownloads;}

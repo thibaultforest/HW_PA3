@@ -393,44 +393,45 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
         myQuery.TTL = to_string(TTL);
         for (int i = 0; i < myPeer->getNumberOfNeighbours(); i++) {
             Peer neighbour = myPeer->getNeighBour(i);
-            SOCKET sock;
-            SOCKADDR_IN sin;
-            /* Creation socket */
-            sock = socket(AF_INET, SOCK_STREAM, 0);
-            /* Connection config */
-            sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
-            sin.sin_family = AF_INET;
-            sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
-            
-            /* If the client connects */
-            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
-                printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-                if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
-                    printf("Send failed.\n");
-                else{
-                    char buffer[64] = "";
-                    while (strcmp(buffer, "end")) {
-                        if(recv(sock, &buffer, sizeof(buffer), 0) != SOCKET_ERROR){
-                            if(strcmp(buffer, "") && strcmp(buffer, "end")){
-                                myPeer->addResultToHistory(myQuery.idMessage, buffer);
+            if(!neighbour.isQuerySender(myQuery.idMessage)){
+                SOCKET sock;
+                SOCKADDR_IN sin;
+                /* Creation socket */
+                sock = socket(AF_INET, SOCK_STREAM, 0);
+                /* Connection config */
+                sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
+                sin.sin_family = AF_INET;
+                sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
+                
+                /* If the client connects */
+                if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+                    printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+                    if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
+                        printf("Send failed.\n");
+                    else{
+                        char buffer[64] = "";
+                        while (strcmp(buffer, "end")) {
+                            if(recv(sock, &buffer, sizeof(buffer), 0) != SOCKET_ERROR){
+                                if(strcmp(buffer, "") && strcmp(buffer, "end")){
+                                    myPeer->addResultToHistory(myQuery.idMessage, buffer);
+                                }
                             }
                         }
                     }
                 }
+                else
+                    printf("Connection failed\n");
+                
+                closesocket(sock);
             }
-            else
-                printf("Connection failed\n");
-            
-            closesocket(sock);
         }
     }
-    SOCKET destSock;
-    destSock = atoi(myQuery.sock.c_str());
-    char buffer[64];
-    if(!myPeer->isMyId(myQuery.idMessage)){         // If searchQuery is not mine, I add my adress if have the file.
+    
+    if(!myPeer->isMyId(myQuery.idMessage)){// If searchQuery is not mine
+        
         for (int i = 0; i < myPeer->getFilesNumber(); i++) {
             string nameOfFile = myPeer->getFileName(i);
-            if (nameOfFile == myQuery.fileName) {
+            if (nameOfFile == myQuery.fileName) {//I add my adress if have the file.
                 string info = myPeer->getIp()+" "+myPeer->getPort()+" "+myQuery.fileName;
                 myPeer->addResultToHistory(myQuery.idMessage, info);
                 break;
@@ -438,6 +439,9 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
         }
         vector<string> tablePeer = myPeer->getTablePeerForThisQuery(myQuery.idMessage);
         cout << tablePeer.size() << " Results for query : '" << myQuery.idMessage << "' of type : " << myQuery.type << endl;
+        SOCKET destSock;
+        destSock = atoi(myQuery.sock.c_str());
+        char buffer[64];
         for(int i=0; i<(int)tablePeer.size(); i++){      // Then I reply results of my research.
             strcpy(buffer, tablePeer.at(i).c_str());
             if(send(destSock, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
@@ -445,12 +449,12 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
             else
                 cout << "Result " << i << " : " << buffer << endl;
         }
+        strcpy(buffer, "end");
+        if(send(destSock, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
+            printf("Send failed.\n");
+        closesocket(destSock);//Close socket of the peer who asked for a search
     }
-    strcpy(buffer, "end");
-    if(send(destSock, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
-    printf("Send failed.\n");
-    closesocket(destSock);//Close socket of the peer who asked for a search
-    if(myPeer->isMyId(myQuery.idMessage)) {
+    else {
         vector<string> tablePeer = myPeer->getTablePeerForThisQuery(myQuery.idMessage);
         cout << tablePeer.size() << " Results for query : '" << myQuery.idMessage << "' of type : " << myQuery.type << endl;
         for(int i=0; i<(int)tablePeer.size(); i++)
@@ -517,15 +521,14 @@ void* broadcastModif(void* data){
             Peer neighbour = myPeer->getNeighBour(i);
             SOCKET sock;
             SOCKADDR_IN sin;
-            /* Création de la socket */
+            
             sock = socket(AF_INET, SOCK_STREAM, 0);
-            /* Configuration de la connexion */
+            
             sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
             sin.sin_family = AF_INET;
             sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
             
-            /* Si le client arrive à se connecter */
-            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+                        if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
                 printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
                 if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
                     printf("Send failed.\n");
@@ -554,15 +557,13 @@ void* downloadQuery(void* data){
                 
                 SOCKET sock;
                 SOCKADDR_IN sin;
-                /* Création de la socket */
+                
                 sock = socket(AF_INET, SOCK_STREAM, 0);
                 
-                /* Configuration de la connexion */
                 sin.sin_addr.s_addr = inet_addr((splitString.at(0)).c_str());
                 sin.sin_family = AF_INET;
                 sin.sin_port = htons(atoi(splitString.at(1).c_str()));
                 
-                /* Si le client arrive à se connecter */
                 if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
                     printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
                     if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
