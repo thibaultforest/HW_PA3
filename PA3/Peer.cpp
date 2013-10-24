@@ -177,7 +177,6 @@ bool Peer::isFileOwner(std::string version){
 }
 
 void Peer::setPathDownloads(std::string path){_pathDownloads = path;}
-//string Peer::getPathDownloads(){return _pathDownloads;}
 
 Peer Peer::getNeighBour(int index){return _neighbours.at(index);}
 int Peer::getNumberOfNeighbours(){return (int)_neighbours.size();}

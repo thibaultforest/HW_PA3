@@ -44,18 +44,11 @@ typedef struct
 bool getCmd(Query &query, const std::string myCout);
 void* server(void* data);
 void* handleQueryClient(void* data);
-//void* sendFile(void* data);
-//void* recvFile(void* data);
-//void* searchQuery(void* data);
 void* client(void* data);
-//void* downloadQuery(void* data);
 bool updateQueryHistory(Query query);
 void* modifyFile(void* data);
-//void* invalidate(void* data);
-//void* broadcastModif(void* data);
 void updateFile(Query myQuery);
 void* pullThread(void* data);
-
 string queryHistory[SIZEHISTORY]={""};
 bool pullBased = false;
 
@@ -66,6 +59,7 @@ void invalidate(void* data);
 void sendFile(void* data);
 void recvFile(void *data);
 void broadcastModif(void* data);
+/**********************/
 
 Peer *myPeer;
 
@@ -171,26 +165,16 @@ void* handleQueryClient(void *data){
         
         if (query.type == "download") {    // Launch sendFile if fileName found.
             for (int i = 0; i < myPeer->getFilesNumber(); i++) {
-#warning Modification à vérifier de près!!!!
                 if (myPeer->getFileName(i) == query.fileName && (myPeer->getFileVersion(i) == query.version || query.version == "NA")) {
-//                    pthread_t t;
-//                    pthread_create(&t, NULL, sendFile, &query);
-//                    pthread_join(t, NULL);
                       sendFile(&query);
                     break;
                 }
             }
         }
         else if (query.type == "search") {     // Search file requested by a Peer.
-//            pthread_t t;
-//            pthread_create(&t, NULL, searchQuery, &query);
-//            pthread_join(t, NULL);
               searchQuery(&query);
         }
         else if (query.type == "invalidate"){
-//            pthread_t t;
-//            pthread_create(&t, NULL, invalidate, &query);
-//            pthread_join(t, NULL);
               invalidate(&query);
             
         }
@@ -300,7 +284,6 @@ void recvFile(void* data){
 }
 
 void invalidate(void* data){
-    
     //Forward invalidate msg to neighboors.
     Query myQuery = *(Query*) data;
     int TTL = atoi(myQuery.TTL.c_str());
@@ -335,7 +318,6 @@ void invalidate(void* data){
     
     File thisFile(myQuery.fileName, myQuery.version, "", "");
     if(myPeer->haveWrongFileVersion(thisFile)){
-#warning Query download vers la peer source du fichier!
         updateFile(myQuery);
     }
 }
@@ -381,9 +363,6 @@ void updateFile(Query myQuery){
             while (buffer != "YES") {
                 recv(sock, &buffer, sizeof(buffer), 0);
                 if(buffer == "YES"){
-//                    pthread_t t;
-//                    pthread_create(&t, NULL, recvFile, &myQuery);
-//                    pthread_join(t, NULL);
                     myQuery.sock = to_string(sock);
                     recvFile(&myQuery);
                     break;
@@ -578,9 +557,6 @@ void downloadQuery(void* data){
                         while (buffer != "YES") {
                             recv(sock, &buffer, sizeof(buffer), 0);
                             if(buffer == "YES"){
-//                                pthread_t t;
-//                                pthread_create(&t, NULL, recvFile, &myQuery);
-//                                pthread_join(t, NULL);
                                 myQuery.sock = to_string(sock);
                                 recvFile(&myQuery);
                                 break;

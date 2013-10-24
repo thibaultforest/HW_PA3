@@ -45,8 +45,6 @@ public:
     
     std::string modifyFile(std::string fileName);
     
-    //    int getMyFilesNumber();
-    //    int getDownloadedFilesNumber();
     int getFilesNumber();
     std::string getFileName(int index);
     std::string getFileVersion(int index);
