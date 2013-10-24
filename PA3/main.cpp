@@ -40,23 +40,32 @@ typedef struct
     string sock;
 }Query;
 
+
 bool getCmd(Query &query, const std::string myCout);
 void* server(void* data);
 void* handleQueryClient(void* data);
-void* sendFile(void* data);
-void* recvFile(void* data);
-void* searchQuery(void* data);
+//void* sendFile(void* data);
+//void* recvFile(void* data);
+//void* searchQuery(void* data);
 void* client(void* data);
-void* downloadQuery(void* data);
+//void* downloadQuery(void* data);
 bool updateQueryHistory(Query query);
 void* modifyFile(void* data);
-void* invalidate(void* data);
-void* broadcastModif(void* data);
+//void* invalidate(void* data);
+//void* broadcastModif(void* data);
 void updateFile(Query myQuery);
 void* pullThread(void* data);
 
 string queryHistory[SIZEHISTORY]={""};
 bool pullBased = false;
+
+/****** FUNCTIONS ******/
+void searchQuery(void* data);
+void downloadQuery(void *data);
+void invalidate(void* data);
+void sendFile(void* data);
+void recvFile(void *data);
+void broadcastModif(void* data);
 
 Peer *myPeer;
 
@@ -164,22 +173,26 @@ void* handleQueryClient(void *data){
             for (int i = 0; i < myPeer->getFilesNumber(); i++) {
 #warning Modification à vérifier de près!!!!
                 if (myPeer->getFileName(i) == query.fileName && (myPeer->getFileVersion(i) == query.version || query.version == "NA")) {
-                    pthread_t t;
-                    pthread_create(&t, NULL, sendFile, &query);
-                    pthread_join(t, NULL);
+//                    pthread_t t;
+//                    pthread_create(&t, NULL, sendFile, &query);
+//                    pthread_join(t, NULL);
+                      sendFile(&query);
                     break;
                 }
             }
         }
         else if (query.type == "search") {     // Search file requested by a Peer.
-            pthread_t t;
-            pthread_create(&t, NULL, searchQuery, &query);
-            pthread_join(t, NULL);
+//            pthread_t t;
+//            pthread_create(&t, NULL, searchQuery, &query);
+//            pthread_join(t, NULL);
+              searchQuery(&query);
         }
         else if (query.type == "invalidate"){
-            pthread_t t;
-            pthread_create(&t, NULL, invalidate, &query);
-            pthread_join(t, NULL);
+//            pthread_t t;
+//            pthread_create(&t, NULL, invalidate, &query);
+//            pthread_join(t, NULL);
+              invalidate(&query);
+            
         }
         else {
             cout << "Unknown query !" << endl;
@@ -191,7 +204,7 @@ void* handleQueryClient(void *data){
     return NULL;
 }
 
-void* sendFile(void* data){
+void sendFile(void* data){
     Query myQuery = *(Query*) data;
     string strPath = myPeer->getPathFiles(myQuery.fileName);
     SOCKET sock = atoi(myQuery.sock.c_str());
@@ -228,10 +241,9 @@ void* sendFile(void* data){
         printf("ERROR\n");
     printf("Ok File %s is sent !\n", fs_name);
     //myMutex.unlock();
-    return NULL;
 }
 
-void* recvFile(void* data){
+void recvFile(void* data){
     //myMutex.lock();
     printf("[Client] Receiveing file from the peer and saving it ...\n");
     Query myQuery = *(Query*) data;
@@ -285,10 +297,9 @@ void* recvFile(void* data){
         myPeer->setQueryIsReceived(myQuery.idMessage);
         fclose(fr);
     }
-    return NULL;
 }
 
-void* invalidate(void* data){
+void invalidate(void* data){
     
     //Forward invalidate msg to neighboors.
     Query myQuery = *(Query*) data;
@@ -327,8 +338,6 @@ void* invalidate(void* data){
 #warning Query download vers la peer source du fichier!
         updateFile(myQuery);
     }
-    
-    return NULL;
 }
 
 void* pullThread(void* data){
@@ -347,6 +356,8 @@ void* pullThread(void* data){
 }
 
 void updateFile(Query myQuery){
+    myQuery.type = "download";
+    myQuery.idMessage = myPeer->newQuery();
     std::vector<std::string> splitString;
     std::istringstream iss(myQuery.version);
     copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
@@ -370,10 +381,11 @@ void updateFile(Query myQuery){
             while (buffer != "YES") {
                 recv(sock, &buffer, sizeof(buffer), 0);
                 if(buffer == "YES"){
-                    pthread_t t;
+//                    pthread_t t;
+//                    pthread_create(&t, NULL, recvFile, &myQuery);
+//                    pthread_join(t, NULL);
                     myQuery.sock = to_string(sock);
-                    pthread_create(&t, NULL, recvFile, &myQuery);
-                    pthread_join(t, NULL);
+                    recvFile(&myQuery);
                     break;
                 }
             }
@@ -385,7 +397,7 @@ void updateFile(Query myQuery){
     closesocket(sock);
 }
 
-void* searchQuery(void* data){       //Decrement TTL and Forward Query
+void searchQuery(void* data){       //Decrement TTL and Forward Query
     clock_t start, end;
     start = clock();
     Query myQuery = *(Query*) data;
@@ -464,7 +476,6 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
     }
     end = clock()-start;
     cout << "It took " << (double)end/(double)CLOCKS_PER_SEC << " seconds for this search query.\n";
-    return NULL;
 }
 
 void* client(void* data)
@@ -472,21 +483,15 @@ void* client(void* data)
     Query myQuery;
     while(getCmd(myQuery, "]")){
         if(myQuery.type == "search"){
-            pthread_t t;
-            pthread_create(&t, NULL, searchQuery, &myQuery);
-            pthread_join(t, NULL);
+            searchQuery(&myQuery);
         }
         else if(myQuery.type == "download"){
-            pthread_t t;
-            pthread_create(&t, NULL, downloadQuery, &myQuery);
-            pthread_join(t, NULL);
+            downloadQuery(&myQuery);
         }
         else if (myQuery.type == "modify"){
             myQuery.version = myPeer->modifyFile(myQuery.fileName);
             if(!pullBased){
-                pthread_t t;
-                pthread_create(&t, NULL, broadcastModif, &myQuery);
-                pthread_join(t, NULL);
+                broadcastModif(&myQuery);
             }
         }
         else if (myQuery.type == "lookup"){
@@ -510,7 +515,7 @@ void* client(void* data)
     return NULL;
 }
 
-void* broadcastModif(void* data){
+void broadcastModif(void* data){
     //    pullPush.lock();
     cout << "Broadcasting invalidate...\n";
     Query myQuery = *(Query*) data;
@@ -543,12 +548,10 @@ void* broadcastModif(void* data){
     }
     cout << "Done!\n";
     //    pullPush.unlock();
-    return NULL;
 }
 
-void* downloadQuery(void* data){
+void downloadQuery(void* data){
     Query myQuery = *(Query*) data;
-    
     vector<string> tablePeer = myPeer->getTablePeerForThisFile(myQuery.fileName);
     if(tablePeer.size() != 0){
         for (int i = 0; i < tablePeer.size(); i++) {
@@ -575,10 +578,11 @@ void* downloadQuery(void* data){
                         while (buffer != "YES") {
                             recv(sock, &buffer, sizeof(buffer), 0);
                             if(buffer == "YES"){
-                                pthread_t t;
+//                                pthread_t t;
+//                                pthread_create(&t, NULL, recvFile, &myQuery);
+//                                pthread_join(t, NULL);
                                 myQuery.sock = to_string(sock);
-                                pthread_create(&t, NULL, recvFile, &myQuery);
-                                pthread_join(t, NULL);
+                                recvFile(&myQuery);
                                 break;
                             }
                         }
@@ -593,7 +597,6 @@ void* downloadQuery(void* data){
     }
     else
         cout << "No Peers available to download this file.\nTry to search it.\n";
-    return NULL;
 }
 
 bool getCmd(Query &query, const std::string myCout) {
