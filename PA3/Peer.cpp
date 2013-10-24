@@ -145,10 +145,10 @@ string Peer::getPathFiles(string name){
 
 bool Peer::haveWrongFileVersion(File file){
     for(int i=0; i<_files.size(); i++){
-//        if (_files[i].getPath() != _pathMyFiles) {
-            if(_files[i].sameFileButDifferentVersion(file))
-                return true;
-//        }
+        //        if (_files[i].getPath() != _pathMyFiles) {
+        if(_files[i].sameFileButDifferentVersion(file))
+            return true;
+        //        }
     }
     return false;
 }
@@ -202,7 +202,7 @@ std::vector<std::string> Peer::getTablePeerForThisQuery(std::string idQuery){
     vector<string> vect;
     for(int i=0; i<(int)_history.size(); i++)
         if(_history.at(i).getIdQuery() == idQuery)
-             return _history.at(i).getTablePeer();
+            return _history.at(i).getTablePeer();
     
     return vect;
 }

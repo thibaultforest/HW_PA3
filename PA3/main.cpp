@@ -56,14 +56,13 @@ void updateFile(Query myQuery);
 void* pullThread(void* data);
 
 string queryHistory[SIZEHISTORY]={""};
-mutex myMutex;
-mutex pullPush;
-Peer *myPeer;
 bool pullBased = false;
+
+Peer *myPeer;
 
 int main(int argc, const char * argv[])
 {
-    Peer firstPeer("/Users/forest/Documents/HW_PA3/PA3/CONFIG.txt");///Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");
+    Peer firstPeer("/Users/thomastheissier/Desktop/gouldins/PA2/CONFIG.txt");///Users/thomastheissier/Desktop/PA2/PA2/CONFIG.txt");
     myPeer = &firstPeer;
     firstPeer.displayNeighbours();
     firstPeer.showYourFiles();
@@ -73,6 +72,7 @@ int main(int argc, const char * argv[])
     pthread_t threadPull;
     
     pthread_create(&threadServer, NULL, server, NULL);
+    sleep(2);
     pthread_create(&threadClient, NULL, client, NULL);
     pthread_create(&threadPull, NULL, pullThread, NULL);
     
@@ -84,21 +84,19 @@ int main(int argc, const char * argv[])
 
 void* server(void* data)
 {
-    /* Socket et contexte d'adressage du serveur */
     SOCKADDR_IN sin;
     SOCKET sock;
     socklen_t recsize = sizeof(sin);
     
     int sock_err;
     
-    /* Création d'une socket */
+    /* Creation of the socket */
     sock = socket(AF_INET, SOCK_STREAM, 0);
     
-    /* Si la socket est valide */
+    /* If the socket is ok */
     if(sock != INVALID_SOCKET)
     {
-        myMutex.lock();
-        printf("La socket %d est maintenant ouverte en mode TCP/IP\n", sock);
+        printf("Socket %d opened in mode TCP/IP\n", sock);
         string strPort = myPeer->getPort();
         int port = atoi(strPort.c_str());
         /* Configuration */
@@ -113,7 +111,6 @@ void* server(void* data)
             /* Listen (mode server) */
             sock_err = listen(sock, 5);
             printf("Port %d is listening...\n", port);
-            myMutex.unlock();
             while(1){
                 /* Client socket */
                 SOCKADDR_IN csin;
@@ -124,9 +121,8 @@ void* server(void* data)
                 {
                     /* Waiting for a client.. */
                     csock = accept(sock, (SOCKADDR*)&csin, &crecsize);
-                    myMutex.lock();
                     printf("A peer is connected with socket %d from %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-                    myMutex.unlock();
+                    //                    myPeer->addConnectedPeer(inet_ntoa(csin.sin_addr), to_string(htons(csin.sin_port)));
                     pthread_t t;
                     fflush(stdout);
                     pthread_create(&t, NULL, handleQueryClient, &csock);
@@ -138,8 +134,8 @@ void* server(void* data)
         else
             perror("bind");
         
-//        printf("Closing client socket\n");
-//        closesocket(csock);
+        //        printf("Closing client socket\n");
+        //        closesocket(csock);
         printf("Closing server socket..\n");
         closesocket(sock);
         printf("Server socket Closed.\n");
@@ -149,7 +145,6 @@ void* server(void* data)
     
     return NULL;
 }
-
 void* handleQueryClient(void *data){
     Query query;
     int stop = 0;
@@ -163,7 +158,7 @@ void* handleQueryClient(void *data){
     myPeer->addQuery(query.idMessage);
     
     if(updateQueryHistory(query)){
-
+        
         if (query.type == "download") {    // Launch sendFile if fileName found.
             for (int i = 0; i < myPeer->getFilesNumber(); i++) {
 #warning Modification à vérifier de près!!!!
@@ -204,7 +199,7 @@ void* sendFile(void* data){
     strcat(fs_name, myQuery.fileName.c_str());
     
     char sdbuf[1024];
-    myMutex.lock();
+    //myMutex.lock();
     printf("[Client] Sending %s to the peer...\n", fs_name);
     FILE *fs = fopen(fs_name, "r");
     if(fs == NULL)
@@ -231,12 +226,12 @@ void* sendFile(void* data){
     if(send(sock, "END", sizeof("END"), 0) < 0)
         printf("ERROR\n");
     printf("Ok File %s is sent !\n", fs_name);
-    myMutex.unlock();
+    //myMutex.unlock();
     return NULL;
 }
 
 void* recvFile(void* data){
-    myMutex.lock();
+    //myMutex.lock();
     printf("[Client] Receiveing file from the peer and saving it ...\n");
     Query myQuery = *(Query*) data;
     string strPath = myPeer->getPathFiles(myQuery.fileName);
@@ -285,7 +280,7 @@ void* recvFile(void* data){
             }
         }
         printf("Ok received from the peer!\n");
-        myMutex.unlock();
+        // myMutex.unlock();
         myPeer->setQueryIsReceived(myQuery.idMessage);
         fclose(fr);
     }
@@ -293,7 +288,7 @@ void* recvFile(void* data){
 }
 
 void* invalidate(void* data){
-
+    
     //Forward invalidate msg to neighboors.
     Query myQuery = *(Query*) data;
     int TTL = atoi(myQuery.TTL.c_str());
@@ -338,7 +333,7 @@ void* pullThread(void* data){
     while(1){
         sleep(10000);
         while (pullBased) {
-        #warning implement pullBased here
+#warning implement pullBased here
             // 1. Decrement all TTR's files;
             // 2. query version file for each file which have TTR=0;
             // 3. Download (void updateFile(Query myQuery)) file which have a wrong version;
@@ -349,7 +344,6 @@ void* pullThread(void* data){
 }
 
 void updateFile(Query myQuery){
-    
     std::vector<std::string> splitString;
     std::istringstream iss(myQuery.version);
     copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
@@ -389,7 +383,8 @@ void updateFile(Query myQuery){
 }
 
 void* searchQuery(void* data){       //Decrement TTL and Forward Query
-    
+    clock_t start, end;
+    start = clock();
     Query myQuery = *(Query*) data;
     int TTL = atoi(myQuery.TTL.c_str());
     if(TTL > 0) {
@@ -399,14 +394,14 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
             Peer neighbour = myPeer->getNeighBour(i);
             SOCKET sock;
             SOCKADDR_IN sin;
-            /* Création de la socket */
+            /* Creation socket */
             sock = socket(AF_INET, SOCK_STREAM, 0);
-            /* Configuration de la connexion */
+            /* Connection config */
             sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
             sin.sin_family = AF_INET;
             sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
             
-            /* Si le client arrive à se connecter */
+            /* If the client connects */
             if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
                 printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
                 if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
@@ -460,7 +455,8 @@ void* searchQuery(void* data){       //Decrement TTL and Forward Query
         for(int i=0; i<(int)tablePeer.size(); i++)
             cout << "Result " << i << " : " << tablePeer.at(i) << endl;
     }
-    
+    end = clock()-start;
+    cout << "It took " << (double)end/(double)CLOCKS_PER_SEC << " seconds for this search query.\n";
     return NULL;
 }
 
@@ -487,27 +483,28 @@ void* client(void* data)
             }
         }
         else if (myQuery.type == "lookup"){
-            myMutex.lock();
+            //myMutex.lock();
             myPeer->showYourFiles();
-            myMutex.unlock();
+            //myMutex.unlock();
         }
         else if (myQuery.type == "pull"){
-            pullPush.lock();
+            //            pullPush.lock();
             pullBased = true;
             cout << "Pull-based ON; Push-based OFF\n";
-            pullPush.unlock();
+            //            pullPush.unlock();
         }
         else if (myQuery.type == "push"){
-            pullPush.lock();
+            //            pullPush.lock();
             pullBased = false;
             cout << "Push-based ON; Pull-based OFF\n";
-            pullPush.unlock();
+            //            pullPush.unlock();
         }
     }
     return NULL;
 }
+
 void* broadcastModif(void* data){
-    pullPush.lock();
+    //    pullPush.lock();
     cout << "Broadcasting invalidate...\n";
     Query myQuery = *(Query*) data;
     myQuery.type = "invalidate";
@@ -539,9 +536,10 @@ void* broadcastModif(void* data){
         }
     }
     cout << "Done!\n";
-    pullPush.unlock();
+    //    pullPush.unlock();
     return NULL;
 }
+
 void* downloadQuery(void* data){
     Query myQuery = *(Query*) data;
     
@@ -594,29 +592,21 @@ void* downloadQuery(void* data){
     return NULL;
 }
 
-
 bool getCmd(Query &query, const std::string myCout) {
-    myMutex.lock();
     cout << myCout;
     vector<string> vect;
     string sentence;
     getline(cin, sentence);
     istringstream iss(sentence);
     copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(vect));
-    if(vect.at(0) == "exit" || (vect.size() == 0)){
-        myMutex.unlock();
+    if(vect.at(0) == "exit" || (vect.size() == 0))
         return false;
-    }
     else if(vect.size() == 2){
         query.type = vect.at(0);
         query.fileName = vect.at(1);
         query.TTL = "2";
         query.idMessage = myPeer->newQuery();
-        query.version = "NA";
     }
-    else if (vect.size() == 1)
-        query.type = vect[0];
-    myMutex.unlock();
     return true;
 }
 

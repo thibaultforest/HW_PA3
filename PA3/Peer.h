@@ -34,7 +34,7 @@ public:
     Peer(std::string pathConfig);
     ~Peer();
     Peer(std::string ip, std::string port);
-
+    
     void setPeerWithConfigFile(const std::string path);
     
     void setPathMyfiles(std::string path);
@@ -45,8 +45,8 @@ public:
     
     std::string modifyFile(std::string fileName);
     
-//    int getMyFilesNumber();
-//    int getDownloadedFilesNumber();
+    //    int getMyFilesNumber();
+    //    int getDownloadedFilesNumber();
     int getFilesNumber();
     std::string getFileName(int index);
     std::string getFileVersion(int index);
