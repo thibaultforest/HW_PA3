@@ -23,6 +23,7 @@ class Peer {
 private:
     std::string _ip;
     std::string _port;
+    int _TTR;
     std::string _pathMyFiles;
     std::string _pathDownloads;
     std::vector<File> _files;
@@ -61,6 +62,8 @@ public:
     std::string getIp();
     void setPort(std::string port);
     std::string getPort();
+    void setTTR(int TTR);
+    int getTTR();
     
     std::string getIdQuery();
     std::string newQuery();
@@ -75,6 +78,8 @@ public:
     std::string increIdQuery(std::string idQuery);
     
     bool isMyId(std::string id);
+    
+    std::vector<File> decrementTTRFiles();
 };
 
 

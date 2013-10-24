@@ -316,7 +316,7 @@ void invalidate(void* data){
         }
     }
     
-    File thisFile(myQuery.fileName, myQuery.version, "", "");
+    File thisFile(myQuery.fileName, myQuery.version, "", "", 0);
     if(myPeer->haveWrongFileVersion(thisFile)){
         updateFile(myQuery);
     }
@@ -330,6 +330,7 @@ void* pullThread(void* data){
 #warning implement pullBased here
             // 1. Decrement all TTR's files;
             // 2. query version file for each file which have TTR=0;
+            vector<File> filesToVerify = myPeer->decrementTTRFiles();
             // 3. Download (void updateFile(Query myQuery)) file which have a wrong version;
         }
     }

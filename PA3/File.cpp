@@ -15,11 +15,12 @@
 
 using namespace std;
 
-File::File(std::string name, std::string version, std::string origin, std::string path) {
+File::File(std::string name, std::string version, std::string origin, std::string path, int TTR) {
     _name = name;
     _version = version;
     _origin = origin;
     _path = path;
+    _TTR = TTR;
 }
 File::~File(){}
 
@@ -30,6 +31,11 @@ void File::setVersion(std::string newVersion) {
 std::string File::getName(){return _name;}
 std::string File::getVersion(){return _version;}
 std::string File::getPath(){return _path;}
+int File::getTTR(){return _TTR;}
+void File::decrementTTR(){
+    if(_TTR > 0)
+        _TTR--;
+}
 
 void File::displayFileInfo(){
     std::cout << _name << "\t\tV_" << _version << "\t\t" << _path << std::endl;
@@ -52,3 +58,4 @@ bool File::sameFileButDifferentVersion(File file){
         return true;
     return false;
 }
+

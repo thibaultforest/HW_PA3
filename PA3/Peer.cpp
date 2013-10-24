@@ -70,11 +70,12 @@ void Peer::setPeerWithConfigFile(const std::string path){
                 contenu = str.substr(0, str.size()-1);
                 istringstream iss(contenu);
                 copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(vect));
-                if(vect.size() == 4){
+                if(vect.size() == 5){
                     setIp(vect.at(0));
                     setPort(vect.at(1).c_str());
-                    setPathMyfiles(vect.at(2));
-                    setPathDownloads(vect.at(3));
+                    setTTR(atoi(vect.at(2).c_str()));
+                    setPathMyfiles(vect.at(3));
+                    setPathDownloads(vect.at(4));
                 }
             }
             else if (contenu == "NEIGHBOURS\r"){      //Get neighbours' config
@@ -133,6 +134,10 @@ std::string Peer::getIp(){return _ip;}
 
 void Peer::setPort(std::string port){_port = port;}
 std::string Peer::getPort() {return _port;}
+
+void Peer::setTTR(int TTR){_TTR = TTR;}
+int Peer::getTTR() {return _TTR;}
+
 
 void Peer::setPathMyfiles(std::string path){_pathMyFiles = path;}
 
@@ -270,6 +275,16 @@ bool Peer::isMyId(string id){
     return false;
 }
 
+std::vector<File> Peer::decrementTTRFiles(){
+    vector<File> filesToVerify;
+    for(int i=0; i<_files.size(); i++){
+        _files[i].decrementTTR();
+        if(_files[i].getTTR() == 0)
+            filesToVerify.push_back(_files[i]);
+    }
+    return filesToVerify;
+}
+
 void Peer::readDirectory(string directory) {
     DIR *dir;
     struct dirent *ent;
@@ -281,7 +296,7 @@ void Peer::readDirectory(string directory) {
                     if ((strcmp(ent->d_name, "."))) {
                         if ((strcmp(ent->d_name, ".."))) {
                             string nameOfFile = string(ent->d_name);
-                            File file(nameOfFile, _ip+" "+_port+" "+"0", _ip+_port, directory);
+                            File file(nameOfFile, _ip+" "+_port+" "+"0", _ip+_port, directory, _TTR);
                             _files.push_back(file);
                         }
                     }

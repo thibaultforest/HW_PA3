@@ -19,16 +19,19 @@ private:
     std::string _version;
     std::string _origin;
     std::string _path;
+    int _TTR;
     bool isModified;
     
 public:
-    File(std::string name, std::string version, std::string origin, std::string path);
+    File(std::string name, std::string version, std::string origin, std::string path, int TTR);
     ~File();
     
     void setVersion(std::string newVersion);
     std::string getName();
     std::string getVersion();
     std::string getPath();
+    int getTTR();
+    void decrementTTR();
     void displayFileInfo();
     bool sameFileButDifferentVersion(File file);
     
