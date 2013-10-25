@@ -538,24 +538,10 @@ void broadcastModif(void* data){
         myQuery.TTL = to_string(TTL);
         for (int i = 0; i < myPeer->getNumberOfNeighbours(); i++) {
             Peer neighbour = myPeer->getNeighBour(i);
-            SOCKET sock;
-            SOCKADDR_IN sin;
-            
-            sock = socket(AF_INET, SOCK_STREAM, 0);
-            
-            sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
-            sin.sin_family = AF_INET;
-            sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
-            
-            if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
-                printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-                if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
-                    printf("Send failed.\n");
+            if (!neighbour.isFileOwner(myQuery.version)) {
+                if(!sendQuery(neighbour.getIp(), neighbour.getPort(), myQuery))
+                    cout << "Connection to neighboor " << i << " failed.\n";
             }
-            else
-                cout << "Connection to neighboor " << i << " failed.\n";
-            
-            closesocket(sock);
         }
     }
     cout << "Done!\n";
@@ -631,6 +617,32 @@ void downloadQuery(void* data){
     }
     else
         cout << "No Peers available to download this file.\nTry to search it.\n";
+}
+
+#warning The function below should work!!
+bool sendQuery(string ip, string port, Query myQuery){
+    bool myBool = true;
+    
+    SOCKET sock;
+    SOCKADDR_IN sin;
+    
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    
+    sin.sin_addr.s_addr = inet_addr(ip.c_str());
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(atoi(port.c_str()));
+    
+    if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
+        printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+        if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
+            printf("Send failed.\n");
+    }
+    else
+        myBool = false;// Connection Failed!
+    
+    closesocket(sock);
+    
+    return myBool;
 }
 
 bool getCmd(Query &query, const std::string myCout) {
