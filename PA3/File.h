@@ -33,7 +33,8 @@ public:
     int getTTR();
     void decrementTTR();
     void displayFileInfo();
-    bool sameFileButDifferentVersion(File file);
+    bool downFileVersion(File file);
+    bool upFileVersion(File file);
     
     void modif(std::string prefixVersion);
 };

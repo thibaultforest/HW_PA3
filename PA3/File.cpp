@@ -53,9 +53,14 @@ void File::modif(string prefixVersion){
     _version = prefixVersion+" "+to_string(id);
 }
 
-bool File::sameFileButDifferentVersion(File file){
-    if(file._name == _name && file._version != _version)
+bool File::downFileVersion(File file){
+    if(file._name == _name && atoi(file._version.c_str()) > atoi(_version.c_str()))
         return true;
     return false;
 }
 
+bool File::upFileVersion(File file){
+    if(file._name == _name && atoi(file._version.c_str()) < atoi(_version.c_str()))
+        return true;
+    return false;
+}

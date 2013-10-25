@@ -52,6 +52,7 @@ public:
     std::string getPathFiles(std::string name);
     std::string getPathDownload();
     bool haveWrongFileVersion(File file);
+    bool haveUpgradeFileVersion(File file);
     bool isQuerySender(std::string idMessage);
     bool isFileOwner(std::string version);
     

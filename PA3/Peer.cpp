@@ -155,10 +155,15 @@ string Peer::getPathDownload() {
 
 bool Peer::haveWrongFileVersion(File file){
     for(int i=0; i<_files.size(); i++){
-        //        if (_files[i].getPath() != _pathMyFiles) {
-        if(_files[i].sameFileButDifferentVersion(file))
+        if(_files[i].downFileVersion(file))
             return true;
-        //        }
+    }
+    return false;
+}
+bool Peer::haveUpgradeFileVersion(File file){
+    for(int i=0; i<_files.size(); i++){
+        if(_files[i].upFileVersion(file))
+            return true;
     }
     return false;
 }
