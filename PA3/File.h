@@ -14,7 +14,7 @@
 
 
 class File {
-    private:
+private:
     std::string _name;
     std::string _version;
     std::string _origin;
@@ -22,7 +22,7 @@ class File {
     int _TTR;
     bool isModified;
     
-    public:
+public:
     File(std::string name, std::string version, std::string origin, std::string path, int TTR);
     ~File();
     

@@ -39,7 +39,7 @@ void* modifyFile(void* data);
 void updateFile(Query myQuery);
 void* pullThread(void* data);
 string queryHistory[SIZEHISTORY]={""};
-bool pullBased = true;
+bool pullBased = false;
 
 /****** FUNCTIONS ******/
 void searchQuery(void* data);
@@ -339,7 +339,8 @@ void* pullThread(void* data){
                                         break;
                                     }
                                 }
-                            } else {
+                            }
+                            else {
                                 myPeer->resetTTRWithFileName(filesToVerify[j].getName());
                             }
                         }
@@ -376,7 +377,7 @@ void updateFile(Query myQuery){
     if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
         printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
         if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
-        printf("Send failed.\n");
+            printf("Send failed.\n");
         else{
             string buffer;
             while (buffer != "NO") {

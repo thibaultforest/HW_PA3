@@ -34,7 +34,7 @@ std::string File::getPath(){return _path;}
 int File::getTTR(){return _TTR;}
 void File::decrementTTR(){
     if(_TTR > 0)
-    _TTR--;
+        _TTR--;
 }
 
 void File::displayFileInfo(){
@@ -54,14 +54,26 @@ void File::modif(string prefixVersion){
 }
 
 bool File::downFileVersion(File file){
-    if(file._name == _name && atoi(file._version.c_str()) > atoi(_version.c_str()))
-    return true;
+    vector<string> splitVersionThis;
+    istringstream iss(_version);
+    copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(splitVersionThis));
+    vector<string> splitVersion;
+    istringstream iss2(file.getVersion());
+    copy(istream_iterator<string>(iss2), istream_iterator<string>(), back_inserter(splitVersion));
+    if(file._name == _name && atoi(splitVersion[2].c_str()) > atoi(splitVersionThis[2].c_str()))
+        return true;
     return false;
 }
 
 bool File::upFileVersion(File file){
-    if(file._name == _name && atoi(file._version.c_str()) < atoi(_version.c_str()))
-    return true;
+    vector<string> splitVersionThis;
+    istringstream iss(_version);
+    copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(splitVersionThis));
+    vector<string> splitVersion;
+    istringstream iss2(file.getVersion());
+    copy(istream_iterator<string>(iss2), istream_iterator<string>(), back_inserter(splitVersion));
+    if(file._name == _name && atoi(splitVersion[2].c_str()) < atoi(splitVersionThis[2].c_str()))
+        return true;
     return false;
 }
 

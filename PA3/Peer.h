@@ -76,7 +76,7 @@ class Peer {
     void setTTR(int TTR);
     int getTTR();
     void resetTTRWithFileName(std::string fileName);
-    void addFileToPeer(Query queryDownload);
+    bool addFileToPeer(Query queryDownload);
     std::string getVersionWithFileName(std::string fileName);
     
     std::string getIdQuery();

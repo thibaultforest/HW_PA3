@@ -140,7 +140,7 @@ int Peer::getTTR() {return _TTR;}
 
 void Peer::resetTTRWithFileName(std::string fileName) {
     for (int i=0; i<(int)_files.size(); i++) {
-        if(fileName == _files[i].getName()) {
+        if(fileName == _files[i].getName() && _files[i].getPath() == _pathDownloads) {
             _files[i].resetTTR(_TTR);
         }
     }
@@ -297,7 +297,7 @@ std::vector<File> Peer::decrementTTRFiles(){
     return filesToVerify;
 }
 
-void Peer::addFileToPeer(Query queryDownload) {
+bool Peer::addFileToPeer(Query queryDownload) {
     std::vector<std::string> splitString;
     std::istringstream iss(queryDownload.version);
     copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
@@ -306,12 +306,13 @@ void Peer::addFileToPeer(Query queryDownload) {
             if (_files[i].getPath() == _pathDownloads){
                 _files[i].setVersion(queryDownload.version);
                 _files[i].resetTTR(_TTR);
-                exit(0);
+                return false;
             }
         }
     }
     File fileToAdd(queryDownload.fileName, queryDownload.version, splitString[0] + splitString[1], _pathDownloads, _TTR);
     _files.push_back(fileToAdd);
+    return true;
 }
 
 string Peer::getVersionWithFileName(string fileName) {
