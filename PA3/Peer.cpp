@@ -138,6 +138,13 @@ std::string Peer::getPort() {return _port;}
 void Peer::setTTR(int TTR){_TTR = TTR;}
 int Peer::getTTR() {return _TTR;}
 
+void Peer::resetTTRWithFileName(std::string fileName) {
+    for (int i=0; i<(int)_files.size(); i++) {
+        if(fileName == _files[i].getName()) {
+            _files[i].resetTTR(_TTR);
+        }
+    }
+}
 
 void Peer::setPathMyfiles(std::string path){_pathMyFiles = path;}
 
@@ -155,12 +162,17 @@ string Peer::getPathDownload() {
 
 bool Peer::haveWrongFileVersion(File file){
     for(int i=0; i<_files.size(); i++){
-        //        if (_files[i].getPath() != _pathMyFiles) {
-        if(_files[i].sameFileButDifferentVersion(file))
+        if(_files[i].downFileVersion(file))
             return true;
-        //        }
     }
     return false;
+}
+int Peer::haveUpgradeFileVersion(File file){
+    for(int i=0; i<_files.size(); i++){
+        if(_files[i].upFileVersion(file))
+        return i;
+    }
+    return -1;
 }
 
 bool Peer::isQuerySender(std::string idMessage){
@@ -285,6 +297,31 @@ std::vector<File> Peer::decrementTTRFiles(){
     return filesToVerify;
 }
 
+void Peer::addFileToPeer(Query queryDownload) {
+    std::vector<std::string> splitString;
+    std::istringstream iss(queryDownload.version);
+    copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
+    for(int i=0; i<_files.size(); i++) {
+        if (_files[i].getName() == queryDownload.fileName) {
+            if (_files[i].getPath() == _pathDownloads){
+                _files[i].setVersion(queryDownload.version);
+                _files[i].resetTTR(_TTR);
+                exit(0);
+            }
+        }
+    }
+    File fileToAdd(queryDownload.fileName, queryDownload.version, splitString[0] + splitString[1], _pathDownloads, _TTR);
+    _files.push_back(fileToAdd);
+}
+
+string Peer::getVersionWithFileName(string fileName) {
+    for (int i = 0; i < _files.size(); i++) {
+        if (_files[i].getName() == fileName)
+            return _files[i].getVersion();
+    }
+    return "";
+}
+
 void Peer::readDirectory(string directory) {
     DIR *dir;
     struct dirent *ent;
@@ -296,7 +333,7 @@ void Peer::readDirectory(string directory) {
                     if ((strcmp(ent->d_name, "."))) {
                         if ((strcmp(ent->d_name, ".."))) {
                             string nameOfFile = string(ent->d_name);
-                            File file(nameOfFile, _ip+" "+_port+" "+"0", _ip+_port, directory, _TTR);
+                            File file(nameOfFile, _ip+" "+_port+" "+"0", _ip+_port, directory, -1);
                             _files.push_back(file);
                         }
                     }

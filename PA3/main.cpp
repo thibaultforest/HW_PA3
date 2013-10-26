@@ -30,17 +30,6 @@ typedef struct sockaddr SOCKADDR;
 
 using namespace std;
 
-typedef struct
-{
-    string idMessage;
-    string type;
-    string fileName;
-    string version;
-    string TTL;
-    string sock;
-}Query;
-
-
 bool getCmd(Query &query, const std::string myCout);
 void* server(void* data);
 void* handleQueryClient(void* data);
@@ -50,7 +39,7 @@ void* modifyFile(void* data);
 void updateFile(Query myQuery);
 void* pullThread(void* data);
 string queryHistory[SIZEHISTORY]={""};
-bool pullBased = false;
+bool pullBased = true;
 
 /****** FUNCTIONS ******/
 void searchQuery(void* data);
@@ -59,6 +48,7 @@ void invalidate(void* data);
 void sendFile(void* data);
 void recvFile(void *data);
 void broadcastModif(void* data);
+bool sendQuery(string ip, string port, Query myQuery);
 void verifyIfUpdatedVersion(void *data);
 /**********************/
 
@@ -132,11 +122,11 @@ void* server(void* data)
                     pthread_create(&t, NULL, handleQueryClient, &csock);
                 }
                 else
-                    perror("listen");
+                perror("listen");
             }
         }
         else
-            perror("bind");
+        perror("bind");
         
         //        printf("Closing client socket\n");
         //        closesocket(csock);
@@ -145,7 +135,7 @@ void* server(void* data)
         printf("Server socket Closed.\n");
     }
     else
-        perror("socket");
+    perror("socket");
     
     return NULL;
 }
@@ -157,7 +147,7 @@ void* handleQueryClient(void *data){
     while (stop == 0) {
         ssize_t bytesBuffer = recv(*(SOCKET*)data, &query, sizeof(query), 0);
         if (bytesBuffer > 0)
-            stop = 1;
+        stop = 1;
     }
     query.sock = to_string(*(SOCKET*)data);
     myPeer->addQuery(query.idMessage);
@@ -167,19 +157,21 @@ void* handleQueryClient(void *data){
         if (query.type == "download") {    // Launch sendFile if fileName found.
             for (int i = 0; i < myPeer->getFilesNumber(); i++) {
                 if (myPeer->getFileName(i) == query.fileName && (myPeer->getFileVersion(i) == query.version || query.version == "NA")) {
-                      sendFile(&query);
+                    sendFile(&query);
                     break;
                 }
             }
         }
         else if (query.type == "search") {     // Search file requested by a Peer.
-              searchQuery(&query);
+            searchQuery(&query);
         }
         else if (query.type == "invalidate"){
-              invalidate(&query);
+            invalidate(&query);
             
         }
         else if (query.type == "pull") {
+            //            pthread_t threadForPull;
+            //            pthread_create(&threadForPull, NULL, pullThread, NULL);
             verifyIfUpdatedVersion(&query);
         }
         else {
@@ -187,7 +179,7 @@ void* handleQueryClient(void *data){
         }
     }
     else
-        cout << "Query already sent.\n";
+    cout << "Query already sent.\n";
     closesocket(*(SOCKET*)data);
     return NULL;
 }
@@ -210,7 +202,7 @@ void sendFile(void* data){
         exit(1);
     }
     else{
-        string buffer = "YES";
+        string buffer = myPeer->getVersionWithFileName(myQuery.fileName);
         send(sock, &buffer, sizeof(buffer), 0);
     }
     
@@ -226,7 +218,7 @@ void sendFile(void* data){
         bzero(sdbuf, 1024);
     }
     if(send(sock, "END", sizeof("END"), 0) < 0)
-        printf("ERROR\n");
+    printf("ERROR\n");
     printf("Ok File %s is sent !\n", fs_name);
     //myMutex.unlock();
 }
@@ -282,6 +274,7 @@ void recvFile(void* data){
         }
         printf("Ok received from the peer!\n");
         // myMutex.unlock();
+        myPeer->addFileToPeer(myQuery);
         myPeer->setQueryIsReceived(myQuery.idMessage);
         fclose(fr);
     }
@@ -290,35 +283,7 @@ void recvFile(void* data){
 void invalidate(void* data){
     //Forward invalidate msg to neighboors.
     Query myQuery = *(Query*) data;
-    int TTL = atoi(myQuery.TTL.c_str());
-    if(TTL > 0) {
-        TTL--;
-        myQuery.TTL = to_string(TTL);
-        for (int i = 0; i < myPeer->getNumberOfNeighbours(); i++) {
-            Peer neighbour = myPeer->getNeighBour(i);
-            if (!neighbour.isFileOwner(myQuery.version)) {
-                SOCKET sock;
-                SOCKADDR_IN sin;
-                /* Création de la socket */
-                sock = socket(AF_INET, SOCK_STREAM, 0);
-                /* Configuration de la connexion */
-                sin.sin_addr.s_addr = inet_addr((neighbour.getIp()).c_str());
-                sin.sin_family = AF_INET;
-                sin.sin_port = htons(atoi(neighbour.getPort().c_str()));
-                
-                /* Si le client arrive à se connecter */
-                if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
-                    printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-                    if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
-                    printf("Send failed.\n");
-                }
-                else
-                    cout << "Connection to neighboor " << i << " failed.\n";
-                
-                closesocket(sock);
-            }
-        }
-    }
+    broadcastModif(&myQuery);
     
     File thisFile(myQuery.fileName, myQuery.version, "", "", 0);
     if(myPeer->haveWrongFileVersion(thisFile)){
@@ -327,22 +292,22 @@ void invalidate(void* data){
 }
 
 void* pullThread(void* data){
-    Query pullQuery = *(Query*) data;
+    Query pullQuery;
     while(1){
         sleep(2); //sleep(100000)
         while (pullBased) {
             // 1. Decrement all TTR's files;
             // 2. query version file for each file which have TTR=0;
             vector<File> filesToVerify = myPeer->decrementTTRFiles();
-            for (int i = 0; i < filesToVerify.size(); i++) {
+            for (int j = 0; j < filesToVerify.size(); j++) {
                 std::vector<std::string> splitString;
-                std::istringstream iss(filesToVerify[i].getVersion());
+                std::istringstream iss(filesToVerify[j].getVersion());
                 copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
                 string ownerIp = splitString[0];
                 int ownerPort = atoi(splitString[1].c_str());
-                pullQuery.fileName = filesToVerify[i].getName();
+                pullQuery.fileName = filesToVerify[j].getName();
                 pullQuery.type = "pull";
-                pullQuery.version = filesToVerify[i].getVersion();
+                pullQuery.version = filesToVerify[j].getVersion();
                 pullQuery.idMessage = myPeer->newQuery();
                 SOCKET sock;
                 SOCKADDR_IN sin;
@@ -356,15 +321,36 @@ void* pullThread(void* data){
                 /* Si le client arrive à se connecter */
                 if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
                     printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+                    Query receive;
                     if(send(sock, &pullQuery, sizeof(pullQuery), 0) == SOCKET_ERROR)
                         printf("Send failed.\n");
+                    else {
+                        if(recv(sock, &receive, sizeof(receive), 0) != SOCKET_ERROR){
+                            if (receive.type != "non") {
+                                receive.sock = to_string(sock);
+//                                updateFile(receive);
+                                string buffer;
+                                while (buffer != "NO") {
+                                    recv(sock, &buffer, sizeof(buffer), 0);
+                                    if(buffer != "NO"){
+                                        receive.sock = to_string(sock);
+                                        receive.version = buffer;
+                                        recvFile(&receive);
+                                        break;
+                                    }
+                                }
+                            } else {
+                                myPeer->resetTTRWithFileName(filesToVerify[j].getName());
+                            }
+                        }
+                    }
                 }
                 else
-                    cout << "Connection to neighboor " << i << " failed.\n";
-                
+                    cout << "Connection to neighboor " << j << " failed.\n";
+        
                 closesocket(sock);
             }
-            // 3. Download (void updateFile(Query myQuery)) file which have a wrong version;
+            filesToVerify.clear();
         }
     }
     return NULL;
@@ -390,13 +376,14 @@ void updateFile(Query myQuery){
     if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
         printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
         if(send(sock, &myQuery, sizeof(myQuery), 0) == SOCKET_ERROR)
-            printf("Send failed.\n");
+        printf("Send failed.\n");
         else{
             string buffer;
-            while (buffer != "YES") {
+            while (buffer != "NO") {
                 recv(sock, &buffer, sizeof(buffer), 0);
-                if(buffer == "YES"){
+                if(buffer != "NO"){
                     myQuery.sock = to_string(sock);
+                    myQuery.version = buffer;
                     recvFile(&myQuery);
                     break;
                 }
@@ -550,26 +537,27 @@ void broadcastModif(void* data){
 
 void verifyIfUpdatedVersion(void *data) {
     Query pullQuery = *(Query*)data;
-    std::vector<std::string> splitString;
-    std::istringstream iss(pullQuery.version);
-    copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), back_inserter(splitString));
-    string ipOwner = splitString[0];
-    int portOwner = atoi(splitString[1].c_str());
-    SOCKET sock;
-    SOCKADDR_IN sin;
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    sin.sin_addr.s_addr = inet_addr(ipOwner.c_str());
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(portOwner);
-    
-    if(connect(sock, (SOCKADDR*)&sin, sizeof(sin)) != SOCKET_ERROR){
-        printf("Connected to %s:%d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-        if(send(sock, &pullQuery, sizeof(pullQuery), 0) == SOCKET_ERROR)
-        printf("Send failed.\n");
+    File thisFile(pullQuery.fileName, pullQuery.version, "", "", 0);
+    Query response;
+    SOCKET sock = atoi(pullQuery.sock.c_str());
+    int indexFile = myPeer->haveUpgradeFileVersion(thisFile);
+    if (indexFile != -1) {
+        response.idMessage = myPeer->newQuery();
+        response.type = "prepareToDownload";
+        response.version = myPeer->getFileVersion(indexFile);
+        response.fileName = myPeer->getFileName(indexFile);
+        response.sock = to_string(sock);
+        if(send(sock, &response, sizeof(response), 0) == SOCKET_ERROR)
+            printf("Send failed.\n");
+        else
+            sendFile(&response);
     }
-    else
-        cout << "Connection to neighboor " << " failed.\n";
-    
+    else {
+        response.type = "non";
+        if (send(sock, &response, sizeof(response), 0) == SOCKET_ERROR) {
+            printf("Send failed");
+        }
+    }
     closesocket(sock);
 }
 
@@ -598,10 +586,11 @@ void downloadQuery(void* data){
                         printf("Send failed.\n");
                     else{
                         string buffer;
-                        while (buffer != "YES") {
+                        while (buffer != "NO") {
                             recv(sock, &buffer, sizeof(buffer), 0);
-                            if(buffer == "YES"){
+                            if(buffer != "NO"){
                                 myQuery.sock = to_string(sock);
+                                myQuery.version = buffer;
                                 recvFile(&myQuery);
                                 break;
                             }
@@ -619,7 +608,6 @@ void downloadQuery(void* data){
         cout << "No Peers available to download this file.\nTry to search it.\n";
 }
 
-#warning The function below should work!!
 bool sendQuery(string ip, string port, Query myQuery){
     bool myBool = true;
     
@@ -669,16 +657,18 @@ bool getCmd(Query &query, const std::string myCout) {
         query.TTL = "2";
         query.idMessage = myPeer->newQuery();
     }
+    else if (vect.size() == 1)
+        query.type = vect[0];
     return true;
 }
 
 bool updateQueryHistory(Query query){
     for(int i=0; i<SIZEHISTORY; i++)
-//        if(queryHistory[i] == query.idMessage)
-//            return false;
+    //        if(queryHistory[i] == query.idMessage)
+    //            return false;
     
     for(int i=SIZEHISTORY-1; i>0; i--)
-        queryHistory[i] = queryHistory[i-1];
+    queryHistory[i] = queryHistory[i-1];
     
     queryHistory[0] = query.idMessage;
     

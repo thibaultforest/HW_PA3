@@ -19,8 +19,18 @@
 #include "QueryHistory.h"
 #include "File.h"
 
+typedef struct
+{
+    std::string idMessage;
+    std::string type;
+    std::string fileName;
+    std::string version;
+    std::string TTL;
+    std::string sock;
+}Query;
+
 class Peer {
-private:
+    private:
     std::string _ip;
     std::string _port;
     int _TTR;
@@ -31,7 +41,7 @@ private:
     std::vector<Peer> _connectedPeer;
     std::vector<QueryHistory> _history;
     
-public:
+    public:
     Peer(std::string pathConfig);
     ~Peer();
     Peer(std::string ip, std::string port);
@@ -52,6 +62,7 @@ public:
     std::string getPathFiles(std::string name);
     std::string getPathDownload();
     bool haveWrongFileVersion(File file);
+    int haveUpgradeFileVersion(File file);
     bool isQuerySender(std::string idMessage);
     bool isFileOwner(std::string version);
     
@@ -64,6 +75,9 @@ public:
     std::string getPort();
     void setTTR(int TTR);
     int getTTR();
+    void resetTTRWithFileName(std::string fileName);
+    void addFileToPeer(Query queryDownload);
+    std::string getVersionWithFileName(std::string fileName);
     
     std::string getIdQuery();
     std::string newQuery();

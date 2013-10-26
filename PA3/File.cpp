@@ -34,7 +34,7 @@ std::string File::getPath(){return _path;}
 int File::getTTR(){return _TTR;}
 void File::decrementTTR(){
     if(_TTR > 0)
-        _TTR--;
+    _TTR--;
 }
 
 void File::displayFileInfo(){
@@ -53,9 +53,18 @@ void File::modif(string prefixVersion){
     _version = prefixVersion+" "+to_string(id);
 }
 
-bool File::sameFileButDifferentVersion(File file){
-    if(file._name == _name && file._version != _version)
-        return true;
+bool File::downFileVersion(File file){
+    if(file._name == _name && atoi(file._version.c_str()) > atoi(_version.c_str()))
+    return true;
     return false;
 }
 
+bool File::upFileVersion(File file){
+    if(file._name == _name && atoi(file._version.c_str()) < atoi(_version.c_str()))
+    return true;
+    return false;
+}
+
+void File::resetTTR(int TTR) {
+    _TTR = TTR;
+}

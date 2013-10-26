@@ -14,7 +14,7 @@
 
 
 class File {
-private:
+    private:
     std::string _name;
     std::string _version;
     std::string _origin;
@@ -22,7 +22,7 @@ private:
     int _TTR;
     bool isModified;
     
-public:
+    public:
     File(std::string name, std::string version, std::string origin, std::string path, int TTR);
     ~File();
     
@@ -32,8 +32,10 @@ public:
     std::string getPath();
     int getTTR();
     void decrementTTR();
+    void resetTTR(int TTR);
     void displayFileInfo();
-    bool sameFileButDifferentVersion(File file);
+    bool downFileVersion(File file);
+    bool upFileVersion(File file);
     
     void modif(std::string prefixVersion);
 };

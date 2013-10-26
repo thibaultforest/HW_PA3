@@ -1,16 +1,4 @@
 PEERCONFIG
-127.0.0.1 5007 4 /Users/thomastheissier/Desktop/HW_PA3/pine/ /Users/thomastheissier/Desktop/HW_PA3/pineDownloads/
+127.0.0.1 5005 4 /Users/thomastheissier/Desktop/HW_PA32/pine/ /Users/thomastheissier/Desktop/HW_PA32/pineDownloads/
 NEIGHBOURS
-127.0.0.1 5009
-
-
-
-
-
-
-
-
-
-
-
-
+127.0.0.1 5004
