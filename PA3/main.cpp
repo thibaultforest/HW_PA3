@@ -39,7 +39,7 @@ void* modifyFile(void* data);
 void updateFile(Query myQuery);
 void* pullThread(void* data);
 string queryHistory[SIZEHISTORY]={""};
-bool pullBased = false;
+bool pullBased = true;
 
 /****** FUNCTIONS ******/
 void searchQuery(void* data);
@@ -170,8 +170,6 @@ void* handleQueryClient(void *data){
             
         }
         else if (query.type == "pull") {
-            //            pthread_t threadForPull;
-            //            pthread_create(&threadForPull, NULL, pullThread, NULL);
             verifyIfUpdatedVersion(&query);
         }
         else {
@@ -294,8 +292,9 @@ void invalidate(void* data){
 void* pullThread(void* data){
     Query pullQuery;
     while(1){
-        sleep(2); //sleep(100000)
+        sleep(10); //sleep(100000)
         while (pullBased) {
+            sleep(10);
             // 1. Decrement all TTR's files;
             // 2. query version file for each file which have TTR=0;
             vector<File> filesToVerify = myPeer->decrementTTRFiles();
@@ -309,6 +308,7 @@ void* pullThread(void* data){
                 pullQuery.type = "pull";
                 pullQuery.version = filesToVerify[j].getVersion();
                 pullQuery.idMessage = myPeer->newQuery();
+                cout << "Verify if the file " << filesToVerify[j].getPath() + filesToVerify[j].getName() << " is the last update of the file " << endl;
                 SOCKET sock;
                 SOCKADDR_IN sin;
                 /* Création de la socket */
@@ -543,9 +543,12 @@ void verifyIfUpdatedVersion(void *data) {
     SOCKET sock = atoi(pullQuery.sock.c_str());
     int indexFile = myPeer->haveUpgradeFileVersion(thisFile);
     if (indexFile != -1) {
+        cout << "A more recent version is found here : " << endl;
         response.idMessage = myPeer->newQuery();
         response.type = "prepareToDownload";
         response.version = myPeer->getFileVersion(indexFile);
+        cout << "Name of the file : " << thisFile.getName();
+        cout << "The version is : " << response.version << endl;
         response.fileName = myPeer->getFileName(indexFile);
         response.sock = to_string(sock);
         if(send(sock, &response, sizeof(response), 0) == SOCKET_ERROR)
@@ -555,6 +558,7 @@ void verifyIfUpdatedVersion(void *data) {
     }
     else {
         response.type = "non";
+        cout << "The file is up to date !" << endl;
         if (send(sock, &response, sizeof(response), 0) == SOCKET_ERROR) {
             printf("Send failed");
         }
